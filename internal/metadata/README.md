@@ -89,3 +89,7 @@ DynamoDB を使用する。以下の 2 種類のアイテムを 1 テーブル�
   - `source`
   - `content_key`
   - `created_at`
+
+## テスト
+
+テストの実行には dynamodb-local の起動が必要。`go tool task test` で自動で起動する。

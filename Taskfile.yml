@@ -8,7 +8,8 @@ tasks:
     vars:
       DOCKER_PATH: podman
     cmds:
-      - '{{.DOCKER_PATH}} compose up -d'
-      - go test ./...
-      - '{{.DOCKER_PATH}} compose down'
+      - |
+        {{ .DOCKER_PATH }} compose up -d
+        trap "{{ .DOCKER_PATH }} compose down" EXIT
+        go test -v ./...
     silent: true

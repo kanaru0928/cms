@@ -54,7 +54,7 @@ func (r *DynamoDBRepository) GetArticleTags(ctx context.Context, getArticleTagsD
 	}
 
 	var outputItem getArticleTagsOutputItem
-	err = attributevalue.UnmarshalMap(items.Item, &getArticleTagsOutputItem{})
+	err = attributevalue.UnmarshalMap(items.Item, &outputItem)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal article tags: %w", err)
 	}
@@ -71,7 +71,7 @@ func (r *DynamoDBRepository) PutArticle(ctx context.Context, putArticleDTO *PutA
 
 	existingTags, err := r.GetArticleTags(ctx, getArticleTagsDTO)
 	var notFoundErr *myerrors.NotFoundError
-	if !errors.As(err, &notFoundErr) {
+	if err != nil && !errors.As(err, &notFoundErr) {
 		return fmt.Errorf("failed to get article tags: %w", err)
 	}
 
@@ -216,8 +216,8 @@ func subtractTags(existingTags, newTags []string) []string {
 }
 
 // テスト用の関数であるため、実装での使用は不可
-func (r *DynamoDBRepository) ScanAllForTest(ctx context.Context) ([]articleItem, error) {
-	var articles []articleItem
+func (r *DynamoDBRepository) ScanAllForTest(ctx context.Context) ([]*articleItem, error) {
+	var articles []*articleItem
 	scanPagenator := dynamodb.NewScanPaginator(r.client, &dynamodb.ScanInput{
 		TableName: aws.String(r.tableName),
 	})
@@ -228,7 +228,7 @@ func (r *DynamoDBRepository) ScanAllForTest(ctx context.Context) ([]articleItem,
 			return nil, fmt.Errorf("failed to scan items: %w", err)
 		}
 
-		var pageItems []articleItem
+		var pageItems []*articleItem
 		err = attributevalue.UnmarshalListOfMaps(page.Items, &pageItems)
 		if err != nil {
 			return nil, fmt.Errorf("failed to unmarshal items: %w", err)
