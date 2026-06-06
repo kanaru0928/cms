@@ -100,7 +100,7 @@ type PutArticleDTOProps struct {
 	Title        string
 	Source       string
 	ContentKey   string
-	Status       StatusType
+	Status       string
 	Tags         []string
 	ThumbnailURL string
 }
@@ -116,8 +116,13 @@ func NewPutArticleDTO(props PutArticleDTOProps) (*PutArticleDTO, error) {
 		return nil, &myerrors.ValidationError{Message: "title must be between 1 and 200 characters"}
 	}
 
-	if props.ContentKey == "" {
-		return nil, &myerrors.ValidationError{Message: "contentKey cannot be empty"}
+	contentKeyLength := len(props.ContentKey)
+	if contentKeyLength < 1 || contentKeyLength > 200 {
+		return nil, &myerrors.ValidationError{Message: "contentKey must be between 1 and 200 characters"}
+	}
+
+	if props.Status != string(StatusPublished) && props.Status != string(StatusUnpublished) {
+		return nil, &myerrors.ValidationError{Message: "status must be either 'published' or 'unpublished'"}
 	}
 
 	sourceLength := len(props.Source)
@@ -125,6 +130,10 @@ func NewPutArticleDTO(props PutArticleDTOProps) (*PutArticleDTO, error) {
 		return nil, &myerrors.ValidationError{Message: "source must be between 1 and 100 characters"}
 	}
 
+	tagsLength := len(props.Tags)
+	if tagsLength < 1 || tagsLength > 20 {
+		return nil, &myerrors.ValidationError{Message: "number of tags must be between 1 and 20"}
+	}
 	for i, tag := range props.Tags {
 		tagLength := len(tag)
 		if tagLength < 1 || tagLength > 50 {
@@ -139,7 +148,7 @@ func NewPutArticleDTO(props PutArticleDTOProps) (*PutArticleDTO, error) {
 		Title:        props.Title,
 		ContentKey:   props.ContentKey,
 		Source:       props.Source,
-		Status:       props.Status,
+		Status:       StatusType(props.Status),
 		Tags:         props.Tags,
 		ThumbnailURL: props.ThumbnailURL,
 	}, nil
