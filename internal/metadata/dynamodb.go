@@ -23,6 +23,7 @@ func NewDynamoDBRepository(cfg *aws.Config, tableName string) *DynamoDBRepositor
 	return &DynamoDBRepository{client: client, tableName: tableName}
 }
 
+// テストでは DynamoDB Local を使用するため、エンドポイントを指定できるようにする
 func NewDynamoDBRepositoryForTest(cfg *aws.Config, tableName string, endpoint string) *DynamoDBRepository {
 	client := dynamodb.NewFromConfig(*cfg, func(o *dynamodb.Options) {
 		o.BaseEndpoint = aws.String(endpoint)
@@ -64,7 +65,9 @@ func (r *DynamoDBRepository) GetArticleTags(ctx context.Context, getArticleTagsD
 
 func (r *DynamoDBRepository) PutArticle(ctx context.Context, putArticleDTO *PutArticleDTO) error {
 	// 既存のタグを取得
-	getArticleTagsDTO, err := NewGetArticleTagsDTO(putArticleDTO.Slug)
+	getArticleTagsDTO, err := NewGetArticleTagsDTO(GetArticleTagsDTOProps{
+		Slug: putArticleDTO.Slug,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to create GetArticleTagsDTO: %w", err)
 	}

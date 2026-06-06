@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/kanaru0928/cms/internal/myerrors"
 )
 
 type StatusType string
@@ -94,41 +95,53 @@ type PutArticleDTO struct {
 	ThumbnailURL string
 }
 
-func NewPutArticleDTO(slug, title, contentKey, source string, status StatusType, tags []string, thumbnailURL string) (*PutArticleDTO, error) {
-	slugLength := len(slug)
+type PutArticleDTOProps struct {
+	Slug         string
+	Title        string
+	Source       string
+	ContentKey   string
+	Status       StatusType
+	Tags         []string
+	ThumbnailURL string
+}
+
+func NewPutArticleDTO(props PutArticleDTOProps) (*PutArticleDTO, error) {
+	slugLength := len(props.Slug)
 	if slugLength < 1 || slugLength > 100 {
-		return nil, fmt.Errorf("slug must be between 1 and 100 characters")
+		return nil, &myerrors.ValidationError{Message: "slug must be between 1 and 100 characters"}
 	}
 
-	titleLength := len(title)
+	titleLength := len(props.Title)
 	if titleLength < 1 || titleLength > 200 {
-		return nil, fmt.Errorf("title must be between 1 and 200 characters")
+		return nil, &myerrors.ValidationError{Message: "title must be between 1 and 200 characters"}
 	}
 
-	if contentKey == "" {
-		return nil, fmt.Errorf("contentKey cannot be empty")
+	if props.ContentKey == "" {
+		return nil, &myerrors.ValidationError{Message: "contentKey cannot be empty"}
 	}
 
-	sourceLength := len(source)
+	sourceLength := len(props.Source)
 	if sourceLength < 1 || sourceLength > 100 {
-		return nil, fmt.Errorf("source must be between 1 and 100 characters")
+		return nil, &myerrors.ValidationError{Message: "source must be between 1 and 100 characters"}
 	}
 
-	for i, tag := range tags {
+	for i, tag := range props.Tags {
 		tagLength := len(tag)
 		if tagLength < 1 || tagLength > 50 {
-			return nil, fmt.Errorf("each tag must be between 1 and 50 characters, but tag at index %d is invalid", i)
+			return nil, &myerrors.ValidationError{
+				Message: fmt.Sprintf("each tag must be between 1 and 50 characters, but tag at index %d is invalid", i),
+			}
 		}
 	}
 
 	return &PutArticleDTO{
-		Slug:       slug,
-		Title:      title,
-		ContentKey: contentKey,
-		Source:     source,
-		Status:     status,
-		Tags:       tags,
-		ThumbnailURL: thumbnailURL,
+		Slug:         props.Slug,
+		Title:        props.Title,
+		ContentKey:   props.ContentKey,
+		Source:       props.Source,
+		Status:       props.Status,
+		Tags:         props.Tags,
+		ThumbnailURL: props.ThumbnailURL,
 	}, nil
 }
 
@@ -136,14 +149,18 @@ type GetArticleTagsDTO struct {
 	Slug string
 }
 
-func NewGetArticleTagsDTO(slug string) (*GetArticleTagsDTO, error) {
-	slugLength := len(slug)
+type GetArticleTagsDTOProps struct {
+	Slug string
+}
+
+func NewGetArticleTagsDTO(props GetArticleTagsDTOProps) (*GetArticleTagsDTO, error) {
+	slugLength := len(props.Slug)
 	if slugLength < 1 || slugLength > 100 {
-		return nil, fmt.Errorf("slug must be between 1 and 100 characters")
+		return nil, &myerrors.ValidationError{Message: "slug must be between 1 and 100 characters"}
 	}
 
 	return &GetArticleTagsDTO{
-		Slug: slug,
+		Slug: props.Slug,
 	}, nil
 }
 
