@@ -28,16 +28,17 @@ const (
 	articleKeySlug     articleKey = "slug"
 	articleKeyItemType articleKey = "item_type"
 
-	articleKeyStatus    articleKey = "status"
-	articleKeyFilterTag articleKey = "filter_tag"
-	articleKeySource    articleKey = "source"
-	articleKeyTitle     articleKey = "title"
-	articleKeyUpdatedAt articleKey = "updated_at"
-	articleKeyCreatedAt articleKey = "created_at"
-
+	articleKeyStatus     articleKey = "status"
+	articleKeyFilterTag  articleKey = "filter_tag"
+	articleKeySource     articleKey = "source"
+	articleKeyTitle      articleKey = "title"
 	articleKeyTags       articleKey = "tags"
-	articleKeyPV         articleKey = "pv"
 	articleKeyContentKey articleKey = "content_key"
+	articleKeyUpdatedAt  articleKey = "updated_at"
+	articleKeyCreatedAt  articleKey = "created_at"
+
+	articleKeyPV           articleKey = "pv"
+	articleKeyThumbnailURL articleKey = "thumbnail_url"
 )
 
 type articlePK string
@@ -64,7 +65,8 @@ type articleItem struct {
 	CreatedAt  string     `dynamodbav:"created_at"`
 
 	// ItemTypeArticle 固有のフィールド
-	PV int `dynamodbav:"pv"`
+	PV           int    `dynamodbav:"pv"`
+	ThumbnailURL string `dynamodbav:"thumbnail_url"`
 }
 
 type tagItem struct {
@@ -83,15 +85,16 @@ type tagItem struct {
 }
 
 type PutArticleDTO struct {
-	Slug       string
-	Title      string
-	Source     string
-	ContentKey string
-	Status     StatusType
-	Tags       []string
+	Slug         string
+	Title        string
+	Source       string
+	ContentKey   string
+	Status       StatusType
+	Tags         []string
+	ThumbnailURL string
 }
 
-func NewPutArticleDTO(slug, title, contentKey, source string, status StatusType, tags []string) (*PutArticleDTO, error) {
+func NewPutArticleDTO(slug, title, contentKey, source string, status StatusType, tags []string, thumbnailURL string) (*PutArticleDTO, error) {
 	slugLength := len(slug)
 	if slugLength < 1 || slugLength > 100 {
 		return nil, fmt.Errorf("slug must be between 1 and 100 characters")
@@ -125,6 +128,7 @@ func NewPutArticleDTO(slug, title, contentKey, source string, status StatusType,
 		Source:     source,
 		Status:     status,
 		Tags:       tags,
+		ThumbnailURL: thumbnailURL,
 	}, nil
 }
 
