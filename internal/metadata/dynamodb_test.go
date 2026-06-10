@@ -2,6 +2,8 @@ package metadata
 
 import (
 	"context"
+	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -9,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/kanaru0928/cms/internal/myerrors"
 )
 
 func createTable(ctx context.Context, repository *DynamoDBRepository) error {
@@ -27,7 +30,7 @@ func createTable(ctx context.Context, repository *DynamoDBRepository) error {
 		},
 		GlobalSecondaryIndexes: []types.GlobalSecondaryIndex{
 			{
-				IndexName: aws.String("GSI_StatusTag_UpdatedAt"),
+				IndexName: aws.String(gsiStatusTagUpdatedAt),
 				KeySchema: []types.KeySchemaElement{
 					{AttributeName: aws.String(string(articleKeyStatus)), KeyType: types.KeyTypeHash},
 					{AttributeName: aws.String(string(articleKeyFilterTag)), KeyType: types.KeyTypeHash},
@@ -491,6 +494,93 @@ func TestPutArticle(t *testing.T) {
 			} else {
 				if len(items) != 0 {
 					t.Errorf("Expected no items, but got %d", len(items))
+				}
+			}
+		})
+	}
+}
+
+func TestGetArticleTags(t *testing.T) {
+	cfg, err := config.LoadDefaultConfig(
+		context.Background(),
+		config.WithRegion("ap-northeast-1"),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("dummy", "dummy", "")),
+	)
+	if err != nil {
+		t.Fatalf("Failed to load AWS config: %v", err)
+	}
+	repo := NewDynamoDBRepositoryForTest(&cfg, "articles", "http://localhost:8000")
+
+	tests := []struct {
+		name       string
+		beforeFunc func() error
+		input      *GetArticleTagsDTO
+		wantErr    error
+		want       []string
+	}{
+		{
+			name: "記事が存在する場合、タグを取得できる",
+			beforeFunc: func() error {
+				return repo.PutArticle(context.Background(), &PutArticleDTO{
+					Slug:         "existing-article",
+					Title:        "Existing Article",
+					Source:       "www.kanaru.me",
+					ContentKey:   "existing-article/content.md",
+					Status:       StatusPublished,
+					Tags:         []string{"tag1", "tag2"},
+					ThumbnailURL: "https://example.com/thumbnail.jpg",
+				})
+			},
+			input: &GetArticleTagsDTO{
+				Slug: "existing-article",
+			},
+			wantErr: nil,
+			want:    []string{"tag1", "tag2"},
+		},
+		{
+			name:       "記事が存在しない場合、NotFound を返す",
+			beforeFunc: nil,
+			input: &GetArticleTagsDTO{
+				Slug: "non-existing-article",
+			},
+			wantErr: &myerrors.NotFoundError{},
+			want:    nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := createTable(context.Background(), repo)
+			if err != nil {
+				t.Fatalf("Failed to create table: %v", err)
+			}
+			defer func() {
+				if err := deleteTable(context.Background(), repo); err != nil {
+					t.Fatalf("Failed to delete table: %v", err)
+				}
+			}()
+
+			if tt.beforeFunc != nil {
+				if err := tt.beforeFunc(); err != nil {
+					t.Fatalf("Failed to run before function: %v", err)
+				}
+			}
+
+			got, err := repo.GetArticleTags(context.Background(), tt.input)
+			if (err != nil) && tt.wantErr == nil {
+				targetPtr := reflect.New(reflect.TypeOf(tt.wantErr)).Interface()
+				if !errors.As(err, &targetPtr) {
+					t.Errorf("GetArticleTags() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				return
+			}
+
+			if len(got) != len(tt.want) {
+				t.Errorf("GetArticleTags() got length = %v, want %v", len(got), len(tt.want))
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("GetArticleTags() got[%d] = %v, want %v", i, got[i], tt.want[i])
 				}
 			}
 		})

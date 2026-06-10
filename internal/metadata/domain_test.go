@@ -4,9 +4,9 @@ import "testing"
 
 func TestNewPutArticleDTO(t *testing.T) {
 	tests := []struct {
-		name	string
-		input	PutArticleDTOProps
-		wantErr	bool
+		name    string
+		input   PutArticleDTOProps
+		wantErr bool
 	}{
 		{
 			name: "すべてのバリデーションを通過",
