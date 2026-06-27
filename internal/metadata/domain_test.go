@@ -187,32 +187,32 @@ func TestNewPutArticleDTO(t *testing.T) {
 				return
 			}
 			if !tt.wantErr {
-				if got.Slug != tt.input.Slug {
-					t.Errorf("NewPutArticleDTO() got.Slug = %v, want %v", got.Slug, tt.input.Slug)
+				if got.slug != tt.input.Slug {
+					t.Errorf("NewPutArticleDTO() got.Slug = %v, want %v", got.slug, tt.input.Slug)
 				}
-				if got.Title != tt.input.Title {
-					t.Errorf("NewPutArticleDTO() got.Title = %v, want %v", got.Title, tt.input.Title)
+				if got.title != tt.input.Title {
+					t.Errorf("NewPutArticleDTO() got.Title = %v, want %v", got.title, tt.input.Title)
 				}
-				if got.ContentKey != tt.input.ContentKey {
-					t.Errorf("NewPutArticleDTO() got.ContentKey = %v, want %v", got.ContentKey, tt.input.ContentKey)
+				if got.contentKey != tt.input.ContentKey {
+					t.Errorf("NewPutArticleDTO() got.ContentKey = %v, want %v", got.contentKey, tt.input.ContentKey)
 				}
-				if got.Source != tt.input.Source {
-					t.Errorf("NewPutArticleDTO() got.Source = %v, want %v", got.Source, tt.input.Source)
+				if got.source != tt.input.Source {
+					t.Errorf("NewPutArticleDTO() got.Source = %v, want %v", got.source, tt.input.Source)
 				}
-				if string(got.Status) != tt.input.Status {
-					t.Errorf("NewPutArticleDTO() got.Status = %v, want %v", got.Status, tt.input.Status)
+				if string(got.status) != tt.input.Status {
+					t.Errorf("NewPutArticleDTO() got.Status = %v, want %v", got.status, tt.input.Status)
 				}
-				if len(got.Tags) != len(tt.input.Tags) {
-					t.Errorf("NewPutArticleDTO() got.Tags length = %v, want %v", len(got.Tags), len(tt.input.Tags))
+				if len(got.tags) != len(tt.input.Tags) {
+					t.Errorf("NewPutArticleDTO() got.Tags length = %v, want %v", len(got.tags), len(tt.input.Tags))
 				} else {
-					for i := range got.Tags {
-						if got.Tags[i] != tt.input.Tags[i] {
-							t.Errorf("NewPutArticleDTO() got.Tags[%d] = %v, want %v", i, got.Tags[i], tt.input.Tags[i])
+					for i := range got.tags {
+						if got.tags[i] != tt.input.Tags[i] {
+							t.Errorf("NewPutArticleDTO() got.Tags[%d] = %v, want %v", i, got.tags[i], tt.input.Tags[i])
 						}
 					}
 				}
-				if got.ThumbnailURL != tt.input.ThumbnailURL {
-					t.Errorf("NewPutArticleDTO() got.ThumbnailURL = %v, want %v", got.ThumbnailURL, tt.input.ThumbnailURL)
+				if got.thumbnailURL != tt.input.ThumbnailURL {
+					t.Errorf("NewPutArticleDTO() got.ThumbnailURL = %v, want %v", got.thumbnailURL, tt.input.ThumbnailURL)
 				}
 			}
 		})

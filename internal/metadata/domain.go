@@ -86,13 +86,13 @@ type tagItem struct {
 }
 
 type PutArticleDTO struct {
-	Slug         string
-	Title        string
-	Source       string
-	ContentKey   string
-	Status       StatusType
-	Tags         []string
-	ThumbnailURL string
+	slug         string
+	title        string
+	source       string
+	contentKey   string
+	status       StatusType
+	tags         []string
+	thumbnailURL string
 }
 
 type PutArticleDTOProps struct {
@@ -144,18 +144,18 @@ func NewPutArticleDTO(props PutArticleDTOProps) (*PutArticleDTO, error) {
 	}
 
 	return &PutArticleDTO{
-		Slug:         props.Slug,
-		Title:        props.Title,
-		ContentKey:   props.ContentKey,
-		Source:       props.Source,
-		Status:       StatusType(props.Status),
-		Tags:         props.Tags,
-		ThumbnailURL: props.ThumbnailURL,
+		slug:         props.Slug,
+		title:        props.Title,
+		contentKey:   props.ContentKey,
+		source:       props.Source,
+		status:       StatusType(props.Status),
+		tags:         props.Tags,
+		thumbnailURL: props.ThumbnailURL,
 	}, nil
 }
 
 type GetArticleTagsDTO struct {
-	Slug string
+	slug string
 }
 
 type GetArticleTagsDTOProps struct {
@@ -169,7 +169,7 @@ func NewGetArticleTagsDTO(props GetArticleTagsDTOProps) (*GetArticleTagsDTO, err
 	}
 
 	return &GetArticleTagsDTO{
-		Slug: props.Slug,
+		slug: props.Slug,
 	}, nil
 }
 
@@ -203,16 +203,4 @@ func NewListArticlesDTO(props ListArticlesDTOProps) (*ListArticlesDTO, error) {
 		status: StatusType(props.Status),
 		limit:  props.Limit,
 	}, nil
-}
-
-func (dto *ListArticlesDTO) GetTag() string {
-	return dto.tag
-}
-
-func (dto *ListArticlesDTO) GetStatus() StatusType {
-	return dto.status
-}
-
-func (dto *ListArticlesDTO) GetLimit() int32 {
-	return dto.limit
 }

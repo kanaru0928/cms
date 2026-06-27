@@ -35,7 +35,7 @@ func NewDynamoDBRepositoryForTest(cfg *aws.Config, tableName string, endpoint st
 
 func (r *DynamoDBRepository) GetArticleTags(ctx context.Context, getArticleTagsDTO *GetArticleTagsDTO) ([]string, error) {
 	key := articlePKMap{
-		articlePKSlug:     &types.AttributeValueMemberS{Value: getArticleTagsDTO.Slug},
+		articlePKSlug:     &types.AttributeValueMemberS{Value: getArticleTagsDTO.slug},
 		articlePKItemType: &types.AttributeValueMemberS{Value: string(ItemTypeArticle)},
 	}
 
@@ -51,7 +51,7 @@ func (r *DynamoDBRepository) GetArticleTags(ctx context.Context, getArticleTagsD
 
 	if items.Item == nil {
 		return nil, &myerrors.NotFoundError{
-			ID:           getArticleTagsDTO.Slug,
+			ID:           getArticleTagsDTO.slug,
 			ResourceType: "Article",
 		}
 	}
@@ -68,7 +68,7 @@ func (r *DynamoDBRepository) GetArticleTags(ctx context.Context, getArticleTagsD
 func (r *DynamoDBRepository) PutArticle(ctx context.Context, putArticleDTO *PutArticleDTO) error {
 	// 既存のタグを取得
 	getArticleTagsDTO, err := NewGetArticleTagsDTO(GetArticleTagsDTOProps{
-		Slug: putArticleDTO.Slug,
+		Slug: putArticleDTO.slug,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create GetArticleTagsDTO: %w", err)
@@ -83,7 +83,7 @@ func (r *DynamoDBRepository) PutArticle(ctx context.Context, putArticleDTO *PutA
 	// 孤立するタグアイテムは削除する必要がある
 	var tagsToRemove []string
 	if notFoundErr == nil {
-		tagsToRemove = subtractTags(existingTags, putArticleDTO.Tags)
+		tagsToRemove = subtractTags(existingTags, putArticleDTO.tags)
 	}
 
 	// トランザクションを構築
@@ -92,7 +92,7 @@ func (r *DynamoDBRepository) PutArticle(ctx context.Context, putArticleDTO *PutA
 	now := time.Now().Format(time.RFC3339)
 	pk := articlePKMap{
 		articlePKItemType: &types.AttributeValueMemberS{Value: string(ItemTypeArticle)},
-		articlePKSlug:     &types.AttributeValueMemberS{Value: putArticleDTO.Slug},
+		articlePKSlug:     &types.AttributeValueMemberS{Value: putArticleDTO.slug},
 	}
 	updateCommand := types.Update{
 		TableName: aws.String(r.tableName),
@@ -122,30 +122,30 @@ func (r *DynamoDBRepository) PutArticle(ctx context.Context, putArticleDTO *PutA
 			"#thumbnail_url": string(articleKeyThumbnailURL),
 		},
 		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":status":        &types.AttributeValueMemberS{Value: string(putArticleDTO.Status)},
+			":status":        &types.AttributeValueMemberS{Value: string(putArticleDTO.status)},
 			":filter_tag":    &types.AttributeValueMemberS{Value: tagAll},
-			":title":         &types.AttributeValueMemberS{Value: putArticleDTO.Title},
-			":source":        &types.AttributeValueMemberS{Value: putArticleDTO.Source},
-			":content_key":   &types.AttributeValueMemberS{Value: putArticleDTO.ContentKey},
-			":tags":          &types.AttributeValueMemberSS{Value: putArticleDTO.Tags},
+			":title":         &types.AttributeValueMemberS{Value: putArticleDTO.title},
+			":source":        &types.AttributeValueMemberS{Value: putArticleDTO.source},
+			":content_key":   &types.AttributeValueMemberS{Value: putArticleDTO.contentKey},
+			":tags":          &types.AttributeValueMemberSS{Value: putArticleDTO.tags},
 			":updated_at":    &types.AttributeValueMemberS{Value: now},
 			":created_at":    &types.AttributeValueMemberS{Value: now},
 			":pv":            &types.AttributeValueMemberN{Value: "0"},
-			":thumbnail_url": &types.AttributeValueMemberS{Value: putArticleDTO.ThumbnailURL},
+			":thumbnail_url": &types.AttributeValueMemberS{Value: putArticleDTO.thumbnailURL},
 		},
 	}
 	transactoinItems = append(transactoinItems, types.TransactWriteItem{
 		Update: &updateCommand,
 	})
 
-	for _, tag := range putArticleDTO.Tags {
+	for _, tag := range putArticleDTO.tags {
 		itemType := fmt.Sprintf("%s#%s", ItemTypeTag, tag)
 
 		updateCommand := types.Update{
 			TableName: aws.String(r.tableName),
 			Key: map[string]types.AttributeValue{
 				string(articlePKItemType): &types.AttributeValueMemberS{Value: itemType},
-				string(articlePKSlug):     &types.AttributeValueMemberS{Value: putArticleDTO.Slug},
+				string(articlePKSlug):     &types.AttributeValueMemberS{Value: putArticleDTO.slug},
 			},
 			UpdateExpression: aws.String(`
 				SET #status = :status,
@@ -168,12 +168,12 @@ func (r *DynamoDBRepository) PutArticle(ctx context.Context, putArticleDTO *PutA
 				"#created_at":  string(articleKeyCreatedAt),
 			},
 			ExpressionAttributeValues: map[string]types.AttributeValue{
-				":status":      &types.AttributeValueMemberS{Value: string(putArticleDTO.Status)},
+				":status":      &types.AttributeValueMemberS{Value: string(putArticleDTO.status)},
 				":filter_tag":  &types.AttributeValueMemberS{Value: tag},
-				":title":       &types.AttributeValueMemberS{Value: putArticleDTO.Title},
-				":source":      &types.AttributeValueMemberS{Value: putArticleDTO.Source},
-				":content_key": &types.AttributeValueMemberS{Value: putArticleDTO.ContentKey},
-				":tags":        &types.AttributeValueMemberSS{Value: putArticleDTO.Tags},
+				":title":       &types.AttributeValueMemberS{Value: putArticleDTO.title},
+				":source":      &types.AttributeValueMemberS{Value: putArticleDTO.source},
+				":content_key": &types.AttributeValueMemberS{Value: putArticleDTO.contentKey},
+				":tags":        &types.AttributeValueMemberSS{Value: putArticleDTO.tags},
 				":updated_at":  &types.AttributeValueMemberS{Value: now},
 				":created_at":  &types.AttributeValueMemberS{Value: now},
 			},
@@ -187,7 +187,7 @@ func (r *DynamoDBRepository) PutArticle(ctx context.Context, putArticleDTO *PutA
 		itemType := fmt.Sprintf("%s#%s", ItemTypeTag, tag)
 		pk := articlePKMap{
 			articlePKItemType: &types.AttributeValueMemberS{Value: itemType},
-			articlePKSlug:     &types.AttributeValueMemberS{Value: putArticleDTO.Slug},
+			articlePKSlug:     &types.AttributeValueMemberS{Value: putArticleDTO.slug},
 		}
 		deleteCommand := types.Delete{
 			TableName: aws.String(r.tableName),
@@ -225,10 +225,10 @@ func subtractTags(existingTags, newTags []string) []string {
 
 func (r *DynamoDBRepository) ListArticles(ctx context.Context, props ListArticlesDTO) ([]*articleItem, map[string]types.AttributeValue, error) {
 	var filterTag string
-	if props.GetTag() == "" {
+	if props.tag == "" {
 		filterTag = tagAll
 	} else {
-		filterTag = props.GetTag()
+		filterTag = props.tag
 	}
 
 	queryInput := &dynamodb.QueryInput{
@@ -240,11 +240,11 @@ func (r *DynamoDBRepository) ListArticles(ctx context.Context, props ListArticle
 			"#filter_tag": string(articleKeyFilterTag),
 		},
 		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":status":     &types.AttributeValueMemberS{Value: string(props.GetStatus())},
+			":status":     &types.AttributeValueMemberS{Value: string(props.status)},
 			":filter_tag": &types.AttributeValueMemberS{Value: filterTag},
 		},
 		ScanIndexForward: aws.Bool(false), // 更新日時の降順で取得
-		Limit:            aws.Int32(props.GetLimit()),
+		Limit:            aws.Int32(props.limit),
 	}
 
 	queryOutput, err := r.client.Query(ctx, queryInput)
