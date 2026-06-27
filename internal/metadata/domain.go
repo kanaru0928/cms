@@ -49,6 +49,23 @@ const (
 	articlePKItemType articlePK = articlePK(articleKeyItemType)
 )
 
+const (
+	slugMinLength         = 1
+	slugMaxLength         = 100
+	titleMinLength        = 1
+	titleMaxLength        = 200
+	contentKeyMinLength   = 1
+	contentKeyMaxLength   = 200
+	sourceMinLength       = 1
+	sourceMaxLength       = 100
+	tagsMinCount          = 1
+	tagsMaxCount          = 20
+	tagMinLength          = 1
+	tagMaxLength          = 50
+	thumbnailURLMinLength = 1
+	thumbnailURLMaxLength = 2000
+)
+
 type articlePKMap map[articlePK]types.AttributeValue
 
 type articleItem struct {
@@ -107,18 +124,18 @@ type PutArticleDTOProps struct {
 
 func NewPutArticleDTO(props PutArticleDTOProps) (*PutArticleDTO, error) {
 	slugLength := len(props.Slug)
-	if slugLength < 1 || slugLength > 100 {
-		return nil, &myerrors.ValidationError{Message: "slug must be between 1 and 100 characters"}
+	if slugLength < slugMinLength || slugLength > slugMaxLength {
+		return nil, &myerrors.ValidationError{Message: fmt.Sprintf("slug must be between %d and %d characters", slugMinLength, slugMaxLength)}
 	}
 
 	titleLength := len(props.Title)
-	if titleLength < 1 || titleLength > 200 {
-		return nil, &myerrors.ValidationError{Message: "title must be between 1 and 200 characters"}
+	if titleLength < titleMinLength || titleLength > titleMaxLength {
+		return nil, &myerrors.ValidationError{Message: fmt.Sprintf("title must be between %d and %d characters", titleMinLength, titleMaxLength)}
 	}
 
 	contentKeyLength := len(props.ContentKey)
-	if contentKeyLength < 1 || contentKeyLength > 200 {
-		return nil, &myerrors.ValidationError{Message: "contentKey must be between 1 and 200 characters"}
+	if contentKeyLength < contentKeyMinLength || contentKeyLength > contentKeyMaxLength {
+		return nil, &myerrors.ValidationError{Message: fmt.Sprintf("contentKey must be between %d and %d characters", contentKeyMinLength, contentKeyMaxLength)}
 	}
 
 	if props.Status != string(StatusPublished) && props.Status != string(StatusUnpublished) {
@@ -126,19 +143,19 @@ func NewPutArticleDTO(props PutArticleDTOProps) (*PutArticleDTO, error) {
 	}
 
 	sourceLength := len(props.Source)
-	if sourceLength < 1 || sourceLength > 100 {
-		return nil, &myerrors.ValidationError{Message: "source must be between 1 and 100 characters"}
+	if sourceLength < sourceMinLength || sourceLength > sourceMaxLength {
+		return nil, &myerrors.ValidationError{Message: fmt.Sprintf("source must be between %d and %d characters", sourceMinLength, sourceMaxLength)}
 	}
 
 	tagsLength := len(props.Tags)
-	if tagsLength < 1 || tagsLength > 20 {
-		return nil, &myerrors.ValidationError{Message: "number of tags must be between 1 and 20"}
+	if tagsLength < tagsMinCount || tagsLength > tagsMaxCount {
+		return nil, &myerrors.ValidationError{Message: fmt.Sprintf("number of tags must be between %d and %d", tagsMinCount, tagsMaxCount)}
 	}
 	for i, tag := range props.Tags {
 		tagLength := len(tag)
-		if tagLength < 1 || tagLength > 50 {
+		if tagLength < tagMinLength || tagLength > tagMaxLength {
 			return nil, &myerrors.ValidationError{
-				Message: fmt.Sprintf("each tag must be between 1 and 50 characters, but tag at index %d is invalid", i),
+				Message: fmt.Sprintf("each tag must be between %d and %d characters, but tag at index %d is invalid", tagMinLength, tagMaxLength, i),
 			}
 		}
 	}
@@ -164,8 +181,8 @@ type GetArticleTagsDTOProps struct {
 
 func NewGetArticleTagsDTO(props GetArticleTagsDTOProps) (*GetArticleTagsDTO, error) {
 	slugLength := len(props.Slug)
-	if slugLength < 1 || slugLength > 100 {
-		return nil, &myerrors.ValidationError{Message: "slug must be between 1 and 100 characters"}
+	if slugLength < slugMinLength || slugLength > slugMaxLength {
+		return nil, &myerrors.ValidationError{Message: fmt.Sprintf("slug must be between %d and %d characters", slugMinLength, slugMaxLength)}
 	}
 
 	return &GetArticleTagsDTO{
