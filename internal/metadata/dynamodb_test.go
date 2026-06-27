@@ -587,6 +587,356 @@ func TestGetArticleTags(t *testing.T) {
 	}
 }
 
+func TestListArticles(t *testing.T) {
+	cfg, err := config.LoadDefaultConfig(
+		context.Background(),
+		config.WithRegion("ap-northeast-1"),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("dummy", "dummy", "")),
+	)
+	if err != nil {
+		t.Fatalf("Failed to load AWS config: %v", err)
+	}
+	repo := NewDynamoDBRepositoryForTest(&cfg, "articles", "http://localhost:8000")
+
+	tests := []struct {
+		name       string
+		beforeFunc func() error
+		input      *ListArticlesDTO
+		wantErr    bool
+		want       []*articleItem
+	}{
+		{
+			name: "複数記事が存在する場合、全ての記事を取得できる",
+			beforeFunc: func() error {
+				articles := []PutArticleDTO{
+					{
+						Slug:         "article-1",
+						Title:        "Article 1",
+						Source:       "www.kanaru.me",
+						ContentKey:   "article-1/content.md",
+						Status:       StatusPublished,
+						Tags:         []string{"tag1", "tag2"},
+						ThumbnailURL: "https://example.com/thumbnail1.jpg",
+					},
+					{
+						Slug:         "article-2",
+						Title:        "Article 2",
+						Source:       "www.kanaru.me",
+						ContentKey:   "article-2/content.md",
+						Status:       StatusPublished,
+						Tags:         []string{"tag2", "tag3"},
+						ThumbnailURL: "https://example.com/thumbnail2.jpg",
+					},
+				}
+
+				for _, article := range articles {
+					if err := repo.PutArticle(context.Background(), &article); err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+			input: &ListArticlesDTO{
+				status: StatusPublished,
+				tag:    "",
+				limit:  10,
+			},
+			wantErr: false,
+			want: []*articleItem{
+				{
+					Slug:         "article-1",
+					ItemType:     ItemTypeArticle,
+					Status:       StatusPublished,
+					FilterTag:    tagAll,
+					Title:        "Article 1",
+					Source:       "www.kanaru.me",
+					ContentKey:   "article-1/content.md",
+					Tags:         []string{"tag1", "tag2"},
+					PV:           0,
+					ThumbnailURL: "https://example.com/thumbnail1.jpg",
+				},
+				{
+					Slug:         "article-2",
+					ItemType:     ItemTypeArticle,
+					Status:       StatusPublished,
+					FilterTag:    tagAll,
+					Title:        "Article 2",
+					Source:       "www.kanaru.me",
+					ContentKey:   "article-2/content.md",
+					Tags:         []string{"tag2", "tag3"},
+					PV:           0,
+					ThumbnailURL: "https://example.com/thumbnail2.jpg",
+				},
+			},
+		},
+		{
+			name: "タグでフィルタリングして記事を取得できる",
+			beforeFunc: func() error {
+				articles := []PutArticleDTO{
+					{
+						Slug:         "article-1",
+						Title:        "Article 1",
+						Source:       "www.kanaru.me",
+						ContentKey:   "article-1/content.md",
+						Status:       StatusPublished,
+						Tags:         []string{"tag1", "tag2"},
+						ThumbnailURL: "https://example.com/thumbnail1.jpg",
+					},
+					{
+						Slug:         "article-2",
+						Title:        "Article 2",
+						Source:       "www.kanaru.me",
+						ContentKey:   "article-2/content.md",
+						Status:       StatusPublished,
+						Tags:         []string{"tag2", "tag3"},
+						ThumbnailURL: "https://example.com/thumbnail2.jpg",
+					},
+					{
+						Slug:         "article-3",
+						Title:        "Article 3",
+						Source:       "www.kanaru.me",
+						ContentKey:   "article-3/content.md",
+						Status:       StatusPublished,
+						Tags:         []string{"tag3", "tag4"},
+						ThumbnailURL: "https://example.com/thumbnail3.jpg",
+					},
+				}
+
+				for _, article := range articles {
+					if err := repo.PutArticle(context.Background(), &article); err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+			input: &ListArticlesDTO{
+				status: StatusPublished,
+				tag:    "tag2",
+				limit:  10,
+			},
+			wantErr: false,
+			want: []*articleItem{
+				{
+					Slug:         "article-1",
+					ItemType:     ItemTypeTag + "#tag2",
+					Status:       StatusPublished,
+					FilterTag:    "tag2",
+					Title:        "Article 1",
+					Source:       "www.kanaru.me",
+					ContentKey:   "article-1/content.md",
+					Tags:         []string{"tag1", "tag2"},
+					PV:           0,
+					ThumbnailURL: "https://example.com/thumbnail1.jpg",
+				},
+				{
+					Slug:         "article-2",
+					ItemType:     ItemTypeTag + "#tag2",
+					Status:       StatusPublished,
+					FilterTag:    "tag2",
+					Title:        "Article 2",
+					Source:       "www.kanaru.me",
+					ContentKey:   "article-2/content.md",
+					Tags:         []string{"tag2", "tag3"},
+					PV:           0,
+					ThumbnailURL: "https://example.com/thumbnail2.jpg",
+				},
+			},
+		},
+		{
+			name: "記事が存在しない場合、空のリストを返す",
+			beforeFunc: nil,
+			input: &ListArticlesDTO{
+				status: StatusPublished,
+				tag:    "",
+				limit:  10,
+			},
+			wantErr: false,
+			want:    []*articleItem{},
+		},
+		{
+			name: "公開の記事のみを取得できる",
+			beforeFunc: func() error {
+				articles := []PutArticleDTO{
+					{
+						Slug:         "article-1",
+						Title:        "Article 1",
+						Source:       "www.kanaru.me",
+						ContentKey:   "article-1/content.md",
+						Status:       StatusPublished,
+						Tags:         []string{"tag1", "tag2"},
+						ThumbnailURL: "https://example.com/thumbnail1.jpg",
+					},
+					{
+						Slug:         "article-2",
+						Title:        "Article 2",
+						Source:       "www.kanaru.me",
+						ContentKey:   "article-2/content.md",
+						Status:       StatusUnpublished,
+						Tags:         []string{"tag2", "tag3"},
+						ThumbnailURL: "https://example.com/thumbnail2.jpg",
+					},
+					{
+						Slug:         "article-3",
+						Title:        "Article 3",
+						Source:       "www.kanaru.me",
+						ContentKey:   "article-3/content.md",
+						Status:       StatusPublished,
+						Tags:         []string{"tag3", "tag4"},
+						ThumbnailURL: "https://example.com/thumbnail3.jpg",
+					},
+				}
+
+				for _, article := range articles {
+					if err := repo.PutArticle(context.Background(), &article); err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+			input: &ListArticlesDTO{
+				status: StatusPublished,
+				tag:    "",
+				limit:  10,
+			},
+			wantErr: false,
+			want: []*articleItem{
+				{
+					Slug:         "article-1",
+					ItemType:     ItemTypeArticle,
+					Status:       StatusPublished,
+					FilterTag:    tagAll,
+					Title:        "Article 1",
+					Source:       "www.kanaru.me",
+					ContentKey:   "article-1/content.md",
+					Tags:         []string{"tag1", "tag2"},
+					PV:           0,
+					ThumbnailURL: "https://example.com/thumbnail1.jpg",
+				},
+				{
+					Slug:         "article-3",
+					ItemType:     ItemTypeArticle,
+					Status:       StatusPublished,
+					FilterTag:    tagAll,
+					Title:        "Article 3",
+					Source:       "www.kanaru.me",
+					ContentKey:   "article-3/content.md",
+					Tags:         []string{"tag3", "tag4"},
+					PV:           0,
+					ThumbnailURL: "https://example.com/thumbnail3.jpg",
+				},
+			},
+		},
+		{
+			name: "非公開の記事のみを取得できる",
+			beforeFunc: func() error {
+				articles := []PutArticleDTO{
+					{
+						Slug:         "article-1",
+						Title:        "Article 1",
+						Source:       "www.kanaru.me",
+						ContentKey:   "article-1/content.md",
+						Status:       StatusPublished,
+						Tags:         []string{"tag1", "tag2"},
+						ThumbnailURL: "https://example.com/thumbnail1.jpg",
+					},
+					{
+						Slug:         "article-2",
+						Title:        "Article 2",
+						Source:       "www.kanaru.me",
+						ContentKey:   "article-2/content.md",
+						Status:       StatusUnpublished,
+						Tags:         []string{"tag2", "tag3"},
+						ThumbnailURL: "https://example.com/thumbnail2.jpg",
+					},
+					{
+						Slug:		 "article-3",
+						Title:        "Article 3",
+						Source:       "www.kanaru.me",
+						ContentKey:   "article-3/content.md",
+						Status:       StatusUnpublished,
+						Tags:         []string{"tag3", "tag4"},
+						ThumbnailURL: "https://example.com/thumbnail3.jpg",
+					},
+				}
+
+				for _, article := range articles {
+					if err := repo.PutArticle(context.Background(), &article); err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+			input: &ListArticlesDTO{
+				status: StatusUnpublished,
+				tag:    "",
+				limit:  10,
+			},
+			wantErr: false,
+			want: []*articleItem{
+				{
+					Slug:         "article-2",
+					ItemType:     ItemTypeArticle,
+					Status:       StatusUnpublished,
+					FilterTag:    tagAll,
+					Title:        "Article 2",
+					Source:       "www.kanaru.me",
+					ContentKey:   "article-2/content.md",
+					Tags:         []string{"tag2", "tag3"},
+					PV:           0,
+					ThumbnailURL: "https://example.com/thumbnail2.jpg",
+				},
+				{
+					Slug:         "article-3",
+					ItemType:     ItemTypeArticle,
+					Status:       StatusUnpublished,
+					FilterTag:    tagAll,
+					Title:        "Article 3",
+					Source:       "www.kanaru.me",
+					ContentKey:   "article-3/content.md",
+					Tags:         []string{"tag3", "tag4"},
+					PV:           0,
+					ThumbnailURL: "https://example.com/thumbnail3.jpg",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := createTable(context.Background(), repo)
+			if err != nil {
+				t.Fatalf("Failed to create table: %v", err)
+			}
+			defer func() {
+				if err := deleteTable(context.Background(), repo); err != nil {
+					t.Fatalf("Failed to delete table: %v", err)
+				}
+			}()
+
+			if tt.beforeFunc != nil {
+				if err := tt.beforeFunc(); err != nil {
+					t.Fatalf("Failed to run before function: %v", err)
+				}
+			}
+
+			got, _, err := repo.ListArticles(context.Background(), *tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ListArticles() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if len(got) != len(tt.want) {
+				t.Errorf("ListArticles() got length = %v, want %v", len(got), len(tt.want))
+			}
+			for i := range got {
+				if !CompareArticleItems(got[i], tt.want[i]) {
+					t.Errorf("ListArticles() got[%d] = %+v, want %+v", i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
 func CompareArticleItems(a, b *articleItem) bool {
 	if a.Slug != b.Slug {
 		return false

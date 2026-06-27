@@ -176,3 +176,43 @@ func NewGetArticleTagsDTO(props GetArticleTagsDTOProps) (*GetArticleTagsDTO, err
 type getArticleTagsOutputItem struct {
 	Tags []string `dynamodbav:"tags"`
 }
+
+type ListArticlesDTO struct {
+	tag    string
+	status StatusType
+	limit  int32
+}
+
+type ListArticlesDTOProps struct {
+	Tag    string
+	Status string
+	Limit  int32
+}
+
+func NewListArticlesDTO(props ListArticlesDTOProps) (*ListArticlesDTO, error) {
+	if props.Limit < 1 || props.Limit > 100 {
+		return nil, &myerrors.ValidationError{Message: "limit must be between 1 and 100"}
+	}
+
+	if props.Status != string(StatusPublished) && props.Status != string(StatusUnpublished) {
+		return nil, &myerrors.ValidationError{Message: "status must be either 'published' or 'unpublished'"}
+	}
+
+	return &ListArticlesDTO{
+		tag:    props.Tag,
+		status: StatusType(props.Status),
+		limit:  props.Limit,
+	}, nil
+}
+
+func (dto *ListArticlesDTO) GetTag() string {
+	return dto.tag
+}
+
+func (dto *ListArticlesDTO) GetStatus() StatusType {
+	return dto.status
+}
+
+func (dto *ListArticlesDTO) GetLimit() int32 {
+	return dto.limit
+}

@@ -218,3 +218,69 @@ func TestNewPutArticleDTO(t *testing.T) {
 		})
 	}
 }
+
+func TestNewListArticlesDTO(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   ListArticlesDTOProps
+		wantErr bool
+	}{
+		{
+			name: "すべてのバリデーションを通過",
+			input: ListArticlesDTOProps{
+				Tag:    "valid-tag",
+				Status: string(StatusPublished),
+				Limit:  10,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Limit が1未満ならエラー",
+			input: ListArticlesDTOProps{
+				Tag:    "valid-tag",
+				Status: string(StatusPublished),
+				Limit:  0,
+			},
+			wantErr: true,
+		},
+		{
+			name: "Limit が100を超えるとエラー",
+			input: ListArticlesDTOProps{
+				Tag:    "valid-tag",
+				Status: string(StatusPublished),
+				Limit:  101,
+			},
+			wantErr: true,
+		},
+		{
+			name: "Status が published か unpublished 以外ならエラー",
+			input: ListArticlesDTOProps{
+				Tag:    "valid-tag",
+				Status: "invalid-status",
+				Limit:  10,
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewListArticlesDTO(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewListArticlesDTO() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr {
+				if got.tag != tt.input.Tag {
+					t.Errorf("NewListArticlesDTO() got.tag = %v, want %v", got.tag, tt.input.Tag)
+				}
+				if string(got.status) != tt.input.Status {
+					t.Errorf("NewListArticlesDTO() got.status = %v, want %v", got.status, tt.input.Status)
+				}
+				if got.limit != tt.input.Limit {
+					t.Errorf("NewListArticlesDTO() got.limit = %v, want %v", got.limit, tt.input.Limit)
+				}
+			}
+		})
+	}
+}

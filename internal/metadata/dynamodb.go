@@ -13,6 +13,8 @@ import (
 	"github.com/kanaru0928/cms/internal/myerrors"
 )
 
+const gsiStatusTagUpdatedAt = "GSI_StatusTag_UpdatedAt"
+
 type DynamoDBRepository struct {
 	client    *dynamodb.Client
 	tableName string
@@ -219,6 +221,46 @@ func subtractTags(existingTags, newTags []string) []string {
 	}
 
 	return tagsToRemove
+}
+
+func (r *DynamoDBRepository) ListArticles(ctx context.Context, props ListArticlesDTO) ([]*articleItem, map[string]types.AttributeValue, error) {
+	var filterTag string
+	if props.GetTag() == "" {
+		filterTag = tagAll
+	} else {
+		filterTag = props.GetTag()
+	}
+
+	queryInput := &dynamodb.QueryInput{
+		TableName:              aws.String(r.tableName),
+		IndexName:              aws.String(gsiStatusTagUpdatedAt),
+		KeyConditionExpression: aws.String("#status = :status AND #filter_tag = :filter_tag"),
+		ExpressionAttributeNames: map[string]string{
+			"#status":     string(articleKeyStatus),
+			"#filter_tag": string(articleKeyFilterTag),
+		},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":status":     &types.AttributeValueMemberS{Value: string(props.GetStatus())},
+			":filter_tag": &types.AttributeValueMemberS{Value: filterTag},
+		},
+		ScanIndexForward: aws.Bool(false), // 更新日時の降順で取得
+		Limit:            aws.Int32(props.GetLimit()),
+	}
+
+	queryOutput, err := r.client.Query(ctx, queryInput)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to query articles: %w", err)
+	}
+
+	var articles []*articleItem
+	err = attributevalue.UnmarshalListOfMaps(queryOutput.Items, &articles)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to unmarshal articles: %w", err)
+	}
+
+	lastKey := queryOutput.LastEvaluatedKey
+
+	return articles, lastKey, nil
 }
 
 // テスト用の関数であるため、実装での使用は不可
