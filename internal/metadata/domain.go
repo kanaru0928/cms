@@ -221,3 +221,22 @@ func NewListArticlesDTO(props ListArticlesDTOProps) (*ListArticlesDTO, error) {
 		limit:  props.Limit,
 	}, nil
 }
+
+type GetArticleDTO struct {
+	slug string
+}
+
+type GetArticleDTOProps struct {
+	Slug string
+}
+
+func NewGetArticleDTO(props GetArticleDTOProps) (*GetArticleDTO, error) {
+	slugLength := len(props.Slug)
+	if slugLength < slugMinLength || slugLength > slugMaxLength {
+		return nil, &myerrors.ValidationError{Message: fmt.Sprintf("slug must be between %d and %d characters", slugMinLength, slugMaxLength)}
+	}
+
+	return &GetArticleDTO{
+		slug: props.Slug,
+	}, nil
+}

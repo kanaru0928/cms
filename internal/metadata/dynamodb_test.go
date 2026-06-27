@@ -567,9 +567,9 @@ func TestGetArticleTags(t *testing.T) {
 			}
 
 			got, err := repo.GetArticleTags(context.Background(), tt.input)
-			if (err != nil) && tt.wantErr == nil {
+			if (err != nil) && tt.wantErr != nil {
 				targetPtr := reflect.New(reflect.TypeOf(tt.wantErr)).Interface()
-				if !errors.As(err, &targetPtr) {
+				if !errors.As(err, targetPtr) {
 					t.Errorf("GetArticleTags() error = %v, wantErr %v", err, tt.wantErr)
 				}
 				return
@@ -937,7 +937,106 @@ func TestListArticles(t *testing.T) {
 	}
 }
 
+func TestGetArticle(t *testing.T) {
+	cfg, err := config.LoadDefaultConfig(
+		context.Background(),
+		config.WithRegion("ap-northeast-1"),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("dummy", "dummy", "")),
+	)
+	if err != nil {
+		t.Fatalf("Failed to load AWS config: %v", err)
+	}
+	repo := NewDynamoDBRepositoryForTest(&cfg, "articles", "http://localhost:8000")
+
+	tests := []struct {
+		name       string
+		beforeFunc func() error
+		input      *GetArticleDTO
+		wantErr    error
+		want       *articleItem
+	}{
+		{
+			name: "記事が存在する場合、記事を取得できる",
+			beforeFunc: func() error {
+				return repo.PutArticle(context.Background(), &PutArticleDTO{
+					slug:         "article-1",
+					status:       StatusPublished,
+					title:        "Article 1",
+					source:       "www.kanaru.me",
+					contentKey:   "article-1/content.md",
+					tags:         []string{"tag1", "tag2"},
+					thumbnailURL: "https://example.com/thumbnail1.jpg",
+				})
+			},
+			input: &GetArticleDTO{
+				slug: "article-1",
+			},
+			wantErr: nil,
+			want: &articleItem{
+				Slug:         "article-1",
+				ItemType:     ItemTypeArticle,
+				Status:       StatusPublished,
+				FilterTag:    tagAll,
+				Title:        "Article 1",
+				Source:       "www.kanaru.me",
+				ContentKey:   "article-1/content.md",
+				Tags:         []string{"tag1", "tag2"},
+				PV:           0,
+				ThumbnailURL: "https://example.com/thumbnail1.jpg",
+			},
+		},
+		{
+			name:       "記事が存在しない場合、NotFound を返す",
+			beforeFunc: nil,
+			input: &GetArticleDTO{
+				slug: "non-existing-article",
+			},
+			wantErr: &myerrors.NotFoundError{},
+			want:    nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := createTable(context.Background(), repo)
+			if err != nil {
+				t.Fatalf("Failed to create table: %v", err)
+			}
+			defer func() {
+				if err := deleteTable(context.Background(), repo); err != nil {
+					t.Fatalf("Failed to delete table: %v", err)
+				}
+			}()
+
+			if tt.beforeFunc != nil {
+				if err := tt.beforeFunc(); err != nil {
+					t.Fatalf("Failed to run before function: %v", err)
+				}
+			}
+
+			got, err := repo.GetArticle(context.Background(), tt.input)
+			if (err != nil) && tt.wantErr != nil {
+				targetPtr := reflect.New(reflect.TypeOf(tt.wantErr)).Interface()
+				if !errors.As(err, targetPtr) {
+					t.Errorf("GetArticle() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				return
+			}
+
+			if !CompareArticleItems(got, tt.want) {
+				t.Errorf("GetArticle() got = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
 func CompareArticleItems(a, b *articleItem) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
 	if a.Slug != b.Slug {
 		return false
 	}

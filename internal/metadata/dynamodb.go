@@ -263,6 +263,37 @@ func (r *DynamoDBRepository) ListArticles(ctx context.Context, props ListArticle
 	return articles, lastKey, nil
 }
 
+func (r *DynamoDBRepository) GetArticle(ctx context.Context, getArticleDTO *GetArticleDTO) (*articleItem, error) {
+	key := articlePKMap{
+		articlePKSlug:     &types.AttributeValueMemberS{Value: getArticleDTO.slug},
+		articlePKItemType: &types.AttributeValueMemberS{Value: string(ItemTypeArticle)},
+	}
+
+	items, err := r.client.GetItem(ctx, &dynamodb.GetItemInput{
+		TableName: aws.String(r.tableName),
+		Key:       key.ToStringMap(),
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get article: %w", err)
+	}
+
+	if items.Item == nil {
+		return nil, &myerrors.NotFoundError{
+			ID:           getArticleDTO.slug,
+			ResourceType: "Article",
+		}
+	}
+
+	var article articleItem
+	err = attributevalue.UnmarshalMap(items.Item, &article)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal article: %w", err)
+	}
+
+	return &article, nil
+}
+
 // テスト用の関数であるため、実装での使用は不可
 func (r *DynamoDBRepository) ScanAllForTest(ctx context.Context) ([]*articleItem, error) {
 	var articles []*articleItem
