@@ -2,8 +2,6 @@ package metadata
 
 import (
 	"context"
-	"errors"
-	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -568,8 +566,7 @@ func TestGetArticleTags(t *testing.T) {
 
 			got, err := repo.GetArticleTags(context.Background(), tt.input)
 			if (err != nil) && tt.wantErr != nil {
-				targetPtr := reflect.New(reflect.TypeOf(tt.wantErr)).Interface()
-				if !errors.As(err, targetPtr) {
+				if !myerrors.HasSameTypeAs(err, tt.wantErr) {
 					t.Errorf("GetArticleTags() error = %v, wantErr %v", err, tt.wantErr)
 				}
 				return
@@ -1016,8 +1013,7 @@ func TestGetArticle(t *testing.T) {
 
 			got, err := repo.GetArticle(context.Background(), tt.input)
 			if (err != nil) && tt.wantErr != nil {
-				targetPtr := reflect.New(reflect.TypeOf(tt.wantErr)).Interface()
-				if !errors.As(err, targetPtr) {
+				if !myerrors.HasSameTypeAs(err, tt.wantErr) {
 					t.Errorf("GetArticle() error = %v, wantErr %v", err, tt.wantErr)
 				}
 				return
