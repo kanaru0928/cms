@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: '3'
+
+tasks:
+  test:
+    desc: Print a greeting message
+    vars:
+      DOCKER_PATH: podman
+    cmds:
+      - |
+        {{ .DOCKER_PATH }} compose up -d
+        trap "{{ .DOCKER_PATH }} compose down" EXIT
+        go test -v ./...
+    silent: true
