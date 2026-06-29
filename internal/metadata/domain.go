@@ -102,7 +102,7 @@ type tagItem struct {
 	CreatedAt  string     `dynamodbav:"created_at"`
 }
 
-type PutArticleDTO struct {
+type putArticleDTO struct {
 	slug         string
 	title        string
 	source       string
@@ -122,7 +122,7 @@ type PutArticleDTOProps struct {
 	ThumbnailURL string
 }
 
-func NewPutArticleDTO(props PutArticleDTOProps) (*PutArticleDTO, error) {
+func NewPutArticleDTO(props PutArticleDTOProps) (*putArticleDTO, error) {
 	slugLength := len(props.Slug)
 	if slugLength < slugMinLength || slugLength > slugMaxLength {
 		return nil, &myerrors.ValidationError{Message: fmt.Sprintf("slug must be between %d and %d characters", slugMinLength, slugMaxLength)}
@@ -160,7 +160,7 @@ func NewPutArticleDTO(props PutArticleDTOProps) (*PutArticleDTO, error) {
 		}
 	}
 
-	return &PutArticleDTO{
+	return &putArticleDTO{
 		slug:         props.Slug,
 		title:        props.Title,
 		contentKey:   props.ContentKey,
@@ -171,7 +171,7 @@ func NewPutArticleDTO(props PutArticleDTOProps) (*PutArticleDTO, error) {
 	}, nil
 }
 
-type GetArticleTagsDTO struct {
+type getArticleTagsDTO struct {
 	slug string
 }
 
@@ -179,13 +179,13 @@ type GetArticleTagsDTOProps struct {
 	Slug string
 }
 
-func NewGetArticleTagsDTO(props GetArticleTagsDTOProps) (*GetArticleTagsDTO, error) {
+func NewGetArticleTagsDTO(props GetArticleTagsDTOProps) (*getArticleTagsDTO, error) {
 	slugLength := len(props.Slug)
 	if slugLength < slugMinLength || slugLength > slugMaxLength {
 		return nil, &myerrors.ValidationError{Message: fmt.Sprintf("slug must be between %d and %d characters", slugMinLength, slugMaxLength)}
 	}
 
-	return &GetArticleTagsDTO{
+	return &getArticleTagsDTO{
 		slug: props.Slug,
 	}, nil
 }
@@ -194,7 +194,7 @@ type getArticleTagsOutputItem struct {
 	Tags []string `dynamodbav:"tags"`
 }
 
-type ListArticlesDTO struct {
+type listArticlesDTO struct {
 	tag    string
 	status StatusType
 	limit  int32
@@ -206,7 +206,7 @@ type ListArticlesDTOProps struct {
 	Limit  int32
 }
 
-func NewListArticlesDTO(props ListArticlesDTOProps) (*ListArticlesDTO, error) {
+func NewListArticlesDTO(props ListArticlesDTOProps) (*listArticlesDTO, error) {
 	if props.Limit < 1 || props.Limit > 100 {
 		return nil, &myerrors.ValidationError{Message: "limit must be between 1 and 100"}
 	}
@@ -215,14 +215,14 @@ func NewListArticlesDTO(props ListArticlesDTOProps) (*ListArticlesDTO, error) {
 		return nil, &myerrors.ValidationError{Message: "status must be either 'published' or 'unpublished'"}
 	}
 
-	return &ListArticlesDTO{
+	return &listArticlesDTO{
 		tag:    props.Tag,
 		status: StatusType(props.Status),
 		limit:  props.Limit,
 	}, nil
 }
 
-type GetArticleDTO struct {
+type getArticleDTO struct {
 	slug string
 }
 
@@ -230,13 +230,13 @@ type GetArticleDTOProps struct {
 	Slug string
 }
 
-func NewGetArticleDTO(props GetArticleDTOProps) (*GetArticleDTO, error) {
+func NewGetArticleDTO(props GetArticleDTOProps) (*getArticleDTO, error) {
 	slugLength := len(props.Slug)
 	if slugLength < slugMinLength || slugLength > slugMaxLength {
 		return nil, &myerrors.ValidationError{Message: fmt.Sprintf("slug must be between %d and %d characters", slugMinLength, slugMaxLength)}
 	}
 
-	return &GetArticleDTO{
+	return &getArticleDTO{
 		slug: props.Slug,
 	}, nil
 }

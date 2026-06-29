@@ -2,8 +2,6 @@ package metadata
 
 import (
 	"context"
-	"errors"
-	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -69,18 +67,18 @@ func TestPutArticle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to load AWS config: %v", err)
 	}
-	repo := NewDynamoDBRepositoryForTest(&cfg, "articles", "http://localhost:8000")
+	repo := newDynamoDBRepositoryForTest(&cfg, "articles", "http://localhost:8000")
 
 	tests := []struct {
 		name       string
 		beforeFunc func() error
-		input      *PutArticleDTO
+		input      *putArticleDTO
 		wantErr    bool
 		wantOutput []*articleItem
 	}{
 		{
 			name: "単一タグの公開記事の登録に成功",
-			input: &PutArticleDTO{
+			input: &putArticleDTO{
 				slug:         "test-article",
 				title:        "Test Article",
 				source:       "www.kanaru.me",
@@ -117,7 +115,7 @@ func TestPutArticle(t *testing.T) {
 		},
 		{
 			name: "複数タグの記事の登録に成功",
-			input: &PutArticleDTO{
+			input: &putArticleDTO{
 				slug:         "test-article-multiple-tags",
 				title:        "Test Article with Multiple Tags",
 				source:       "www.kanaru.me",
@@ -175,7 +173,7 @@ func TestPutArticle(t *testing.T) {
 		{
 			name: "記事の追加登録に成功",
 			beforeFunc: func() error {
-				return repo.PutArticle(context.Background(), &PutArticleDTO{
+				return repo.PutArticle(context.Background(), &putArticleDTO{
 					slug:         "test-article",
 					title:        "Test Article",
 					source:       "www.kanaru.me",
@@ -185,7 +183,7 @@ func TestPutArticle(t *testing.T) {
 					thumbnailURL: "https://example.com/thumbnail1.jpg",
 				})
 			},
-			input: &PutArticleDTO{
+			input: &putArticleDTO{
 				slug:         "test-article-additional",
 				title:        "Test Article Additional",
 				source:       "www.kanaru.me",
@@ -265,7 +263,7 @@ func TestPutArticle(t *testing.T) {
 		{
 			name: "タグを変更しない記事の更新に成功",
 			beforeFunc: func() error {
-				return repo.PutArticle(context.Background(), &PutArticleDTO{
+				return repo.PutArticle(context.Background(), &putArticleDTO{
 					slug:         "test-article",
 					title:        "Test Article",
 					source:       "www.kanaru.me",
@@ -275,7 +273,7 @@ func TestPutArticle(t *testing.T) {
 					thumbnailURL: "https://example.com/thumbnail.jpg",
 				})
 			},
-			input: &PutArticleDTO{
+			input: &putArticleDTO{
 				slug:         "test-article",
 				title:        "Test Article Updated",
 				source:       "www.kanaru.me",
@@ -323,7 +321,7 @@ func TestPutArticle(t *testing.T) {
 		{
 			name: "タグを追加する記事の更新に成功",
 			beforeFunc: func() error {
-				return repo.PutArticle(context.Background(), &PutArticleDTO{
+				return repo.PutArticle(context.Background(), &putArticleDTO{
 					slug:         "test-article",
 					title:        "Test Article",
 					source:       "www.kanaru.me",
@@ -333,7 +331,7 @@ func TestPutArticle(t *testing.T) {
 					thumbnailURL: "https://example.com/thumbnail.jpg",
 				})
 			},
-			input: &PutArticleDTO{
+			input: &putArticleDTO{
 				slug:         "test-article",
 				title:        "Test Article Updated with Additional Tag",
 				source:       "www.kanaru.me",
@@ -381,7 +379,7 @@ func TestPutArticle(t *testing.T) {
 		{
 			name: "タグを削除する記事の更新に成功",
 			beforeFunc: func() error {
-				return repo.PutArticle(context.Background(), &PutArticleDTO{
+				return repo.PutArticle(context.Background(), &putArticleDTO{
 					slug:         "test-article",
 					title:        "Test Article",
 					source:       "www.kanaru.me",
@@ -391,7 +389,7 @@ func TestPutArticle(t *testing.T) {
 					thumbnailURL: "https://example.com/thumbnail.jpg",
 				})
 			},
-			input: &PutArticleDTO{
+			input: &putArticleDTO{
 				slug:         "test-article",
 				title:        "Test Article Updated with Removed Tag",
 				source:       "www.kanaru.me",
@@ -438,7 +436,7 @@ func TestPutArticle(t *testing.T) {
 		},
 		{
 			name: "タグなしの記事の登録に失敗",
-			input: &PutArticleDTO{
+			input: &putArticleDTO{
 				slug:         "test-article-no-tags",
 				title:        "Test Article with No Tags",
 				source:       "www.kanaru.me",
@@ -476,7 +474,7 @@ func TestPutArticle(t *testing.T) {
 				return
 			}
 
-			items, err := repo.ScanAllForTest(context.Background())
+			items, err := repo.scanAllForTest(context.Background())
 			if err != nil {
 				t.Fatalf("Failed to scan all items: %v", err)
 			}
@@ -509,19 +507,19 @@ func TestGetArticleTags(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to load AWS config: %v", err)
 	}
-	repo := NewDynamoDBRepositoryForTest(&cfg, "articles", "http://localhost:8000")
+	repo := newDynamoDBRepositoryForTest(&cfg, "articles", "http://localhost:8000")
 
 	tests := []struct {
 		name       string
 		beforeFunc func() error
-		input      *GetArticleTagsDTO
+		input      *getArticleTagsDTO
 		wantErr    error
 		want       []string
 	}{
 		{
 			name: "記事が存在する場合、タグを取得できる",
 			beforeFunc: func() error {
-				return repo.PutArticle(context.Background(), &PutArticleDTO{
+				return repo.PutArticle(context.Background(), &putArticleDTO{
 					slug:         "existing-article",
 					title:        "Existing Article",
 					source:       "www.kanaru.me",
@@ -531,7 +529,7 @@ func TestGetArticleTags(t *testing.T) {
 					thumbnailURL: "https://example.com/thumbnail.jpg",
 				})
 			},
-			input: &GetArticleTagsDTO{
+			input: &getArticleTagsDTO{
 				slug: "existing-article",
 			},
 			wantErr: nil,
@@ -540,7 +538,7 @@ func TestGetArticleTags(t *testing.T) {
 		{
 			name:       "記事が存在しない場合、NotFound を返す",
 			beforeFunc: nil,
-			input: &GetArticleTagsDTO{
+			input: &getArticleTagsDTO{
 				slug: "non-existing-article",
 			},
 			wantErr: &myerrors.NotFoundError{},
@@ -568,8 +566,7 @@ func TestGetArticleTags(t *testing.T) {
 
 			got, err := repo.GetArticleTags(context.Background(), tt.input)
 			if (err != nil) && tt.wantErr != nil {
-				targetPtr := reflect.New(reflect.TypeOf(tt.wantErr)).Interface()
-				if !errors.As(err, targetPtr) {
+				if !myerrors.HasSameTypeAs(err, tt.wantErr) {
 					t.Errorf("GetArticleTags() error = %v, wantErr %v", err, tt.wantErr)
 				}
 				return
@@ -596,19 +593,19 @@ func TestListArticles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to load AWS config: %v", err)
 	}
-	repo := NewDynamoDBRepositoryForTest(&cfg, "articles", "http://localhost:8000")
+	repo := newDynamoDBRepositoryForTest(&cfg, "articles", "http://localhost:8000")
 
 	tests := []struct {
 		name       string
 		beforeFunc func() error
-		input      *ListArticlesDTO
+		input      *listArticlesDTO
 		wantErr    bool
 		want       []*articleItem
 	}{
 		{
 			name: "複数記事が存在する場合、全ての記事を取得できる",
 			beforeFunc: func() error {
-				articles := []PutArticleDTO{
+				articles := []putArticleDTO{
 					{
 						slug:         "article-1",
 						title:        "Article 1",
@@ -636,7 +633,7 @@ func TestListArticles(t *testing.T) {
 				}
 				return nil
 			},
-			input: &ListArticlesDTO{
+			input: &listArticlesDTO{
 				status: StatusPublished,
 				tag:    "",
 				limit:  10,
@@ -672,7 +669,7 @@ func TestListArticles(t *testing.T) {
 		{
 			name: "タグでフィルタリングして記事を取得できる",
 			beforeFunc: func() error {
-				articles := []PutArticleDTO{
+				articles := []putArticleDTO{
 					{
 						slug:         "article-1",
 						title:        "Article 1",
@@ -709,7 +706,7 @@ func TestListArticles(t *testing.T) {
 				}
 				return nil
 			},
-			input: &ListArticlesDTO{
+			input: &listArticlesDTO{
 				status: StatusPublished,
 				tag:    "tag2",
 				limit:  10,
@@ -745,7 +742,7 @@ func TestListArticles(t *testing.T) {
 		{
 			name:       "記事が存在しない場合、空のリストを返す",
 			beforeFunc: nil,
-			input: &ListArticlesDTO{
+			input: &listArticlesDTO{
 				status: StatusPublished,
 				tag:    "",
 				limit:  10,
@@ -756,7 +753,7 @@ func TestListArticles(t *testing.T) {
 		{
 			name: "公開の記事のみを取得できる",
 			beforeFunc: func() error {
-				articles := []PutArticleDTO{
+				articles := []putArticleDTO{
 					{
 						slug:         "article-1",
 						title:        "Article 1",
@@ -793,7 +790,7 @@ func TestListArticles(t *testing.T) {
 				}
 				return nil
 			},
-			input: &ListArticlesDTO{
+			input: &listArticlesDTO{
 				status: StatusPublished,
 				tag:    "",
 				limit:  10,
@@ -829,7 +826,7 @@ func TestListArticles(t *testing.T) {
 		{
 			name: "非公開の記事のみを取得できる",
 			beforeFunc: func() error {
-				articles := []PutArticleDTO{
+				articles := []putArticleDTO{
 					{
 						slug:         "article-1",
 						title:        "Article 1",
@@ -866,7 +863,7 @@ func TestListArticles(t *testing.T) {
 				}
 				return nil
 			},
-			input: &ListArticlesDTO{
+			input: &listArticlesDTO{
 				status: StatusUnpublished,
 				tag:    "",
 				limit:  10,
@@ -946,19 +943,19 @@ func TestGetArticle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to load AWS config: %v", err)
 	}
-	repo := NewDynamoDBRepositoryForTest(&cfg, "articles", "http://localhost:8000")
+	repo := newDynamoDBRepositoryForTest(&cfg, "articles", "http://localhost:8000")
 
 	tests := []struct {
 		name       string
 		beforeFunc func() error
-		input      *GetArticleDTO
+		input      *getArticleDTO
 		wantErr    error
 		want       *articleItem
 	}{
 		{
 			name: "記事が存在する場合、記事を取得できる",
 			beforeFunc: func() error {
-				return repo.PutArticle(context.Background(), &PutArticleDTO{
+				return repo.PutArticle(context.Background(), &putArticleDTO{
 					slug:         "article-1",
 					status:       StatusPublished,
 					title:        "Article 1",
@@ -968,7 +965,7 @@ func TestGetArticle(t *testing.T) {
 					thumbnailURL: "https://example.com/thumbnail1.jpg",
 				})
 			},
-			input: &GetArticleDTO{
+			input: &getArticleDTO{
 				slug: "article-1",
 			},
 			wantErr: nil,
@@ -988,7 +985,7 @@ func TestGetArticle(t *testing.T) {
 		{
 			name:       "記事が存在しない場合、NotFound を返す",
 			beforeFunc: nil,
-			input: &GetArticleDTO{
+			input: &getArticleDTO{
 				slug: "non-existing-article",
 			},
 			wantErr: &myerrors.NotFoundError{},
@@ -1016,8 +1013,7 @@ func TestGetArticle(t *testing.T) {
 
 			got, err := repo.GetArticle(context.Background(), tt.input)
 			if (err != nil) && tt.wantErr != nil {
-				targetPtr := reflect.New(reflect.TypeOf(tt.wantErr)).Interface()
-				if !errors.As(err, targetPtr) {
+				if !myerrors.HasSameTypeAs(err, tt.wantErr) {
 					t.Errorf("GetArticle() error = %v, wantErr %v", err, tt.wantErr)
 				}
 				return
