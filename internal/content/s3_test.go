@@ -25,17 +25,17 @@ func TestPutTextContent(t *testing.T) {
 		t.Fatalf("failed to load AWS config: %v", err)
 	}
 
-	repo := NewS3RepositoryForTest(&cfg, bucketName, "test-prefix/", "http://localhost:3900", "garage")
+	repo := newS3RepositoryForTest(&cfg, bucketName, "test-prefix/", "http://localhost:3900", "garage")
 
 	tests := []struct {
 		name         string
-		input        PutTextContentDTO
+		input        putTextContentDTO
 		wantErr      bool
 		wantContents map[string]ContentType
 	}{
 		{
 			name: "正常にアップロードできる",
-			input: PutTextContentDTO{
+			input: putTextContentDTO{
 				key:     "test-key",
 				content: "This is a test content.",
 			},
@@ -78,7 +78,7 @@ func TestGetTextContent(t *testing.T) {
 		t.Fatalf("failed to load AWS config: %v", err)
 	}
 
-	repo := NewS3RepositoryForTest(&cfg, bucketName, "test-prefix/", "http://localhost:3900", "garage")
+	repo := newS3RepositoryForTest(&cfg, bucketName, "test-prefix/", "http://localhost:3900", "garage")
 
 	tests := []struct {
 		name       string
@@ -90,7 +90,7 @@ func TestGetTextContent(t *testing.T) {
 		{
 			name: "正常に取得できる",
 			beforeFunc: func() error {
-				return repo.PutTextContent(context.Background(), PutTextContentDTO{
+				return repo.PutTextContent(context.Background(), putTextContentDTO{
 					key:     "test-key",
 					content: "This is a test content.",
 				})

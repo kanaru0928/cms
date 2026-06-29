@@ -26,14 +26,14 @@ func NewDynamoDBRepository(cfg *aws.Config, tableName string) *DynamoDBRepositor
 }
 
 // テストでは DynamoDB Local を使用するため、エンドポイントを指定できるようにする
-func NewDynamoDBRepositoryForTest(cfg *aws.Config, tableName string, endpoint string) *DynamoDBRepository {
+func newDynamoDBRepositoryForTest(cfg *aws.Config, tableName string, endpoint string) *DynamoDBRepository {
 	client := dynamodb.NewFromConfig(*cfg, func(o *dynamodb.Options) {
 		o.BaseEndpoint = aws.String(endpoint)
 	})
 	return &DynamoDBRepository{client: client, tableName: tableName}
 }
 
-func (r *DynamoDBRepository) GetArticleTags(ctx context.Context, getArticleTagsDTO *GetArticleTagsDTO) ([]string, error) {
+func (r *DynamoDBRepository) GetArticleTags(ctx context.Context, getArticleTagsDTO *getArticleTagsDTO) ([]string, error) {
 	key := articlePKMap{
 		articlePKSlug:     &types.AttributeValueMemberS{Value: getArticleTagsDTO.slug},
 		articlePKItemType: &types.AttributeValueMemberS{Value: string(ItemTypeArticle)},
@@ -65,7 +65,7 @@ func (r *DynamoDBRepository) GetArticleTags(ctx context.Context, getArticleTagsD
 	return outputItem.Tags, nil
 }
 
-func (r *DynamoDBRepository) PutArticle(ctx context.Context, putArticleDTO *PutArticleDTO) error {
+func (r *DynamoDBRepository) PutArticle(ctx context.Context, putArticleDTO *putArticleDTO) error {
 	// 既存のタグを取得
 	getArticleTagsDTO, err := NewGetArticleTagsDTO(GetArticleTagsDTOProps{
 		Slug: putArticleDTO.slug,
@@ -223,7 +223,7 @@ func subtractTags(existingTags, newTags []string) []string {
 	return tagsToRemove
 }
 
-func (r *DynamoDBRepository) ListArticles(ctx context.Context, props ListArticlesDTO) ([]*articleItem, map[string]types.AttributeValue, error) {
+func (r *DynamoDBRepository) ListArticles(ctx context.Context, props listArticlesDTO) ([]*articleItem, map[string]types.AttributeValue, error) {
 	var filterTag string
 	if props.tag == "" {
 		filterTag = tagAll
@@ -263,7 +263,7 @@ func (r *DynamoDBRepository) ListArticles(ctx context.Context, props ListArticle
 	return articles, lastKey, nil
 }
 
-func (r *DynamoDBRepository) GetArticle(ctx context.Context, getArticleDTO *GetArticleDTO) (*articleItem, error) {
+func (r *DynamoDBRepository) GetArticle(ctx context.Context, getArticleDTO *getArticleDTO) (*articleItem, error) {
 	key := articlePKMap{
 		articlePKSlug:     &types.AttributeValueMemberS{Value: getArticleDTO.slug},
 		articlePKItemType: &types.AttributeValueMemberS{Value: string(ItemTypeArticle)},
@@ -295,7 +295,7 @@ func (r *DynamoDBRepository) GetArticle(ctx context.Context, getArticleDTO *GetA
 }
 
 // テスト用の関数であるため、実装での使用は不可
-func (r *DynamoDBRepository) ScanAllForTest(ctx context.Context) ([]*articleItem, error) {
+func (r *DynamoDBRepository) scanAllForTest(ctx context.Context) ([]*articleItem, error) {
 	var articles []*articleItem
 	scanPagenator := dynamodb.NewScanPaginator(r.client, &dynamodb.ScanInput{
 		TableName: aws.String(r.tableName),

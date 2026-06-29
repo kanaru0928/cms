@@ -25,7 +25,7 @@ func NewS3Repository(cfg *aws.Config, bucketName, prefix string) *S3Repository {
 	}
 }
 
-func NewS3RepositoryForTest(cfg *aws.Config, bucketName, prefix, endpoint, region string) *S3Repository {
+func newS3RepositoryForTest(cfg *aws.Config, bucketName, prefix, endpoint, region string) *S3Repository {
 	client := s3.NewFromConfig(*cfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(endpoint)
 		o.UsePathStyle = true
@@ -42,7 +42,7 @@ func (r *S3Repository) getFullKey(key string) string {
 	return r.prefix + key
 }
 
-func (r *S3Repository) PutTextContent(ctx context.Context, props PutTextContentDTO) error {
+func (r *S3Repository) PutTextContent(ctx context.Context, props putTextContentDTO) error {
 	r.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(r.bucketName),
 		Key:    aws.String(r.getFullKey(props.key)),
@@ -61,7 +61,7 @@ func (r *S3Repository) GetTextContent(ctx context.Context, key string) (ContentT
 	}
 	if resp == nil {
 		return "", &myerrors.NotFoundError{
-			ID: key,
+			ID:           key,
 			ResourceType: "content",
 		}
 	}

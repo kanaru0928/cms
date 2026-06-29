@@ -9,7 +9,7 @@ type PutTextContentDTOProps struct {
 	Content ContentType
 }
 
-type PutTextContentDTO struct {
+type putTextContentDTO struct {
 	key     string
 	content ContentType
 }
@@ -21,7 +21,7 @@ const (
 	textContentMaxLength = 100000
 )
 
-func NewPutTextContentDTO(props PutTextContentDTOProps) (*PutTextContentDTO, error) {
+func NewPutTextContentDTO(props PutTextContentDTOProps) (*putTextContentDTO, error) {
 	keyLength := len(props.Key)
 	if keyLength < keyMinLength || keyLength > keyMaxLength {
 		return nil, &myerrors.ValidationError{Message: "key must be between 1 and 200 characters"}
@@ -32,13 +32,13 @@ func NewPutTextContentDTO(props PutTextContentDTOProps) (*PutTextContentDTO, err
 		return nil, &myerrors.ValidationError{Message: "content must be between 1 and 100000 characters"}
 	}
 
-	return &PutTextContentDTO{
+	return &putTextContentDTO{
 		key:     props.Key,
 		content: props.Content,
 	}, nil
 }
 
-type GetTextContentDTO struct {
+type getTextContentDTO struct {
 	key string
 }
 
@@ -46,13 +46,13 @@ type GetTextContentDTOProps struct {
 	Key string
 }
 
-func NewGetTextContentDTO(props GetTextContentDTOProps) (*GetTextContentDTO, error) {
+func NewGetTextContentDTO(props GetTextContentDTOProps) (*getTextContentDTO, error) {
 	keyLength := len(props.Key)
 	if keyLength < keyMinLength || keyLength > keyMaxLength {
 		return nil, &myerrors.ValidationError{Message: "key must be between 1 and 200 characters"}
 	}
 
-	return &GetTextContentDTO{
+	return &getTextContentDTO{
 		key: props.Key,
 	}, nil
 }
