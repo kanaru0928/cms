@@ -6,7 +6,7 @@ tasks:
   test:
     desc: Print a greeting message
     vars:
-      DOCKER_PATH: podman
+      DOCKER_PATH: '{{.DOCKER_PATH | default "podman"}}'
     cmds:
       - |
         {{ .DOCKER_PATH }} compose up -d

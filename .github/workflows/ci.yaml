@@ -23,4 +23,6 @@ jobs:
         run: go build ./...
 
       - name: Test
-        run: go tool task test DOCKER_PATH=docker
+        env:
+          DOCKER_PATH: docker
+        run: go tool task test
