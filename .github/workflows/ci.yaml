@@ -1,0 +1,28 @@
+name: "Test"
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  quality-check:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.26
+
+      - name: Install Dependencies
+        run: go mod download
+      
+      - name: Build
+        run: go build ./...
+
+      - name: Test
+        env:
+          DOCKER_PATH: docker
+        run: go tool task test
