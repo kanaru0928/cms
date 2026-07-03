@@ -1,4 +1,4 @@
-name: "Quality Check"
+name: "Test"
 
 on:
   push:
@@ -17,7 +17,7 @@ jobs:
           go-version: 1.26
 
       - name: Install Dependencies
-        run: go get .
+        run: go mod download
       
       - name: Build
         run: go build ./...
