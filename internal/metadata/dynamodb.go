@@ -223,13 +223,15 @@ func subtractTags(existingTags, newTags []string) []string {
 	return tagsToRemove
 }
 
-func (r *DynamoDBRepository) ListArticles(ctx context.Context, props listArticlesDTO) ([]*articleItem, map[string]types.AttributeValue, error) {
+func (r *DynamoDBRepository) ListArticles(ctx context.Context, props listArticlesDTO) (*listArticlesOutput, error) {
 	var filterTag string
 	if props.tag == "" {
 		filterTag = tagAll
 	} else {
 		filterTag = props.tag
 	}
+
+	sortOrder := props.order == SortOrderAsc
 
 	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String(r.tableName),
@@ -243,27 +245,52 @@ func (r *DynamoDBRepository) ListArticles(ctx context.Context, props listArticle
 			":status":     &types.AttributeValueMemberS{Value: string(props.status)},
 			":filter_tag": &types.AttributeValueMemberS{Value: filterTag},
 		},
-		ScanIndexForward: aws.Bool(false), // 更新日時の降順で取得
+		ScanIndexForward: aws.Bool(sortOrder),
 		Limit:            aws.Int32(props.limit),
 	}
 
 	queryOutput, err := r.client.Query(ctx, queryInput)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to query articles: %w", err)
+		return nil, fmt.Errorf("failed to query articles: %w", err)
 	}
 
 	var articles []*articleItem
 	err = attributevalue.UnmarshalListOfMaps(queryOutput.Items, &articles)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to unmarshal articles: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal articles: %w", err)
 	}
 
-	lastKey := queryOutput.LastEvaluatedKey
+	lastKey := make(map[articlePK]types.AttributeValue)
+	if queryOutput.LastEvaluatedKey != nil {
+		lastKey = articlePKMap{
+			articlePKSlug:     queryOutput.LastEvaluatedKey[string(articlePKSlug)],
+			articlePKItemType: queryOutput.LastEvaluatedKey[string(articlePKItemType)],
+		}
+	}
 
-	return articles, lastKey, nil
+	articleItems := make([]listArticlesOutputItem, len(articles))
+	for i, article := range articles {
+		articleItems[i] = listArticlesOutputItem{
+			Slug:         article.Slug,
+			Status:       article.Status,
+			Title:        article.Title,
+			Source:       article.Source,
+			ContentKey:   article.ContentKey,
+			Tags:         article.Tags,
+			UpdatedAt:    article.UpdatedAt,
+			CreatedAt:    article.CreatedAt,
+			PV:           article.PV,
+			ThumbnailURL: article.ThumbnailURL,
+		}
+	}
+
+	return &listArticlesOutput{
+		Items:            articleItems,
+		lastEvaluatedKey: lastKey,
+	}, nil
 }
 
-func (r *DynamoDBRepository) GetArticle(ctx context.Context, getArticleDTO *getArticleDTO) (*articleItem, error) {
+func (r *DynamoDBRepository) GetArticle(ctx context.Context, getArticleDTO *getArticleDTO) (*getArticleOutput, error) {
 	key := articlePKMap{
 		articlePKSlug:     &types.AttributeValueMemberS{Value: getArticleDTO.slug},
 		articlePKItemType: &types.AttributeValueMemberS{Value: string(ItemTypeArticle)},
@@ -291,7 +318,20 @@ func (r *DynamoDBRepository) GetArticle(ctx context.Context, getArticleDTO *getA
 		return nil, fmt.Errorf("failed to unmarshal article: %w", err)
 	}
 
-	return &article, nil
+	item := getArticleOutput{
+		Slug:         article.Slug,
+		Title:        article.Title,
+		Source:       article.Source,
+		ContentKey:   article.ContentKey,
+		Status:       article.Status,
+		Tags:         article.Tags,
+		UpdatedAt:    article.UpdatedAt,
+		CreatedAt:    article.CreatedAt,
+		PV:           article.PV,
+		ThumbnailURL: article.ThumbnailURL,
+	}
+
+	return &item, nil
 }
 
 // テスト用の関数であるため、実装での使用は不可
