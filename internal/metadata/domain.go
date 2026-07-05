@@ -14,6 +14,13 @@ const (
 	StatusUnpublished StatusType = "unpublished"
 )
 
+type SortOrderType string
+
+const (
+	SortOrderAsc  SortOrderType = "asc"
+	SortOrderDesc SortOrderType = "desc"
+)
+
 type ItemType string
 
 const (
@@ -198,12 +205,14 @@ type listArticlesDTO struct {
 	tag    string
 	status StatusType
 	limit  int32
+	order  SortOrderType
 }
 
 type ListArticlesDTOProps struct {
 	Tag    string
 	Status string
 	Limit  int32
+	Order  string
 }
 
 func NewListArticlesDTO(props ListArticlesDTOProps) (*listArticlesDTO, error) {
@@ -215,10 +224,15 @@ func NewListArticlesDTO(props ListArticlesDTOProps) (*listArticlesDTO, error) {
 		return nil, &myerrors.ValidationError{Message: "status must be either 'published' or 'unpublished'"}
 	}
 
+	if props.Order != string(SortOrderAsc) && props.Order != string(SortOrderDesc) {
+		return nil, &myerrors.ValidationError{Message: "order must be either 'asc' or 'desc'"}
+	}
+
 	return &listArticlesDTO{
 		tag:    props.Tag,
 		status: StatusType(props.Status),
 		limit:  props.Limit,
+		order:  SortOrderType(props.Order),
 	}, nil
 }
 

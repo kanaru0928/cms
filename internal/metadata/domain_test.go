@@ -231,8 +231,29 @@ func TestNewListArticlesDTO(t *testing.T) {
 				Tag:    "valid-tag",
 				Status: string(StatusPublished),
 				Limit:  10,
+				Order:  string(SortOrderAsc),
 			},
 			wantErr: false,
+		},
+		{
+			name: "Order が desc でも通過",
+			input: ListArticlesDTOProps{
+				Tag:    "valid-tag",
+				Status: string(StatusPublished),
+				Limit:  10,
+				Order:  string(SortOrderDesc),
+			},
+			wantErr: false,
+		},
+		{
+			name: "Order が asc/desc 以外ならエラー",
+			input: ListArticlesDTOProps{
+				Tag:    "valid-tag",
+				Status: string(StatusPublished),
+				Limit:  10,
+				Order:  "invalid-order",
+			},
+			wantErr: true,
 		},
 		{
 			name: "Limit が1未満ならエラー",
@@ -240,6 +261,7 @@ func TestNewListArticlesDTO(t *testing.T) {
 				Tag:    "valid-tag",
 				Status: string(StatusPublished),
 				Limit:  0,
+				Order: string(SortOrderDesc),
 			},
 			wantErr: true,
 		},
@@ -249,6 +271,7 @@ func TestNewListArticlesDTO(t *testing.T) {
 				Tag:    "valid-tag",
 				Status: string(StatusPublished),
 				Limit:  101,
+				Order: string(SortOrderDesc),
 			},
 			wantErr: true,
 		},
@@ -258,6 +281,7 @@ func TestNewListArticlesDTO(t *testing.T) {
 				Tag:    "valid-tag",
 				Status: "invalid-status",
 				Limit:  10,
+				Order:  string(SortOrderDesc),
 			},
 			wantErr: true,
 		},
@@ -279,6 +303,9 @@ func TestNewListArticlesDTO(t *testing.T) {
 				}
 				if got.limit != tt.input.Limit {
 					t.Errorf("NewListArticlesDTO() got.limit = %v, want %v", got.limit, tt.input.Limit)
+				}
+				if string(got.order) != tt.input.Order {
+					t.Errorf("NewListArticlesDTO() got.order = %v, want %v", got.order, tt.input.Order)
 				}
 			}
 		})

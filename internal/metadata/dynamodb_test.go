@@ -3,6 +3,7 @@ package metadata
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -637,6 +638,7 @@ func TestListArticles(t *testing.T) {
 				status: StatusPublished,
 				tag:    "",
 				limit:  10,
+				order:  SortOrderDesc,
 			},
 			wantErr: false,
 			want: []*articleItem{
@@ -710,6 +712,7 @@ func TestListArticles(t *testing.T) {
 				status: StatusPublished,
 				tag:    "tag2",
 				limit:  10,
+				order: SortOrderDesc,
 			},
 			wantErr: false,
 			want: []*articleItem{
@@ -746,6 +749,7 @@ func TestListArticles(t *testing.T) {
 				status: StatusPublished,
 				tag:    "",
 				limit:  10,
+				order:  SortOrderDesc,
 			},
 			wantErr: false,
 			want:    []*articleItem{},
@@ -794,6 +798,7 @@ func TestListArticles(t *testing.T) {
 				status: StatusPublished,
 				tag:    "",
 				limit:  10,
+				order:  SortOrderDesc,
 			},
 			wantErr: false,
 			want: []*articleItem{
@@ -867,6 +872,7 @@ func TestListArticles(t *testing.T) {
 				status: StatusUnpublished,
 				tag:    "",
 				limit:  10,
+				order:  SortOrderDesc,
 			},
 			wantErr: false,
 			want: []*articleItem{
@@ -893,6 +899,140 @@ func TestListArticles(t *testing.T) {
 					Tags:         []string{"tag3", "tag4"},
 					PV:           0,
 					ThumbnailURL: "https://example.com/thumbnail3.jpg",
+				},
+			},
+		},
+		{
+			name: "日時昇順で記事を取得できる",
+			beforeFunc: func() error {
+				articles := []putArticleDTO{
+					{
+						slug:         "article-1",
+						title:        "Article 1",
+						source:       "www.kanaru.me",
+						contentKey:   "article-1/content.md",
+						status:       StatusPublished,
+						tags:         []string{"tag1", "tag2"},
+						thumbnailURL: "https://example.com/thumbnail1.jpg",
+					},
+					{
+						slug:         "article-2",
+						title:        "Article 2",
+						source:       "www.kanaru.me",
+						contentKey:   "article-2/content.md",
+						status:       StatusPublished,
+						tags:         []string{"tag2", "tag3"},
+						thumbnailURL: "https://example.com/thumbnail2.jpg",
+					},
+				}
+
+				for _, article := range articles {
+					if err := repo.PutArticle(context.Background(), &article); err != nil {
+						return err
+					}
+
+					time.Sleep(1 * time.Second)
+				}
+				return nil
+			},
+			input: &listArticlesDTO{
+				status: StatusPublished,
+				tag:    "",
+				limit:  10,
+				order:  SortOrderAsc,
+			},
+			wantErr: false,
+			want: []*articleItem{
+				{
+					Slug:         "article-1",
+					ItemType:     ItemTypeArticle,
+					Status:       StatusPublished,
+					FilterTag:    tagAll,
+					Title:        "Article 1",
+					Source:       "www.kanaru.me",
+					ContentKey:   "article-1/content.md",
+					Tags:         []string{"tag1", "tag2"},
+					PV:           0,
+					ThumbnailURL: "https://example.com/thumbnail1.jpg",
+				},
+				{
+					Slug:         "article-2",
+					ItemType:     ItemTypeArticle,
+					Status:       StatusPublished,
+					FilterTag:    tagAll,
+					Title:        "Article 2",
+					Source:       "www.kanaru.me",
+					ContentKey:   "article-2/content.md",
+					Tags:         []string{"tag2", "tag3"},
+					PV:           0,
+					ThumbnailURL: "https://example.com/thumbnail2.jpg",
+				},
+			},
+		},
+		{
+			name: "日時降順で記事を取得できる",
+			beforeFunc: func() error {
+				articles := []putArticleDTO{
+					{
+						slug:         "article-1",
+						title:        "Article 1",
+						source:       "www.kanaru.me",
+						contentKey:   "article-1/content.md",
+						status:       StatusPublished,
+						tags:         []string{"tag1", "tag2"},
+						thumbnailURL: "https://example.com/thumbnail1.jpg",
+					},
+					{
+						slug:         "article-2",
+						title:        "Article 2",
+						source:       "www.kanaru.me",
+						contentKey:   "article-2/content.md",
+						status:       StatusPublished,
+						tags:         []string{"tag2", "tag3"},
+						thumbnailURL: "https://example.com/thumbnail2.jpg",
+					},
+				}
+
+				for _, article := range articles {
+					if err := repo.PutArticle(context.Background(), &article); err != nil {
+						return err
+					}
+
+					time.Sleep(1 * time.Second)
+				}
+				return nil
+			},
+			input: &listArticlesDTO{
+				status: StatusPublished,
+				tag:    "",
+				limit:  10,
+				order:  SortOrderDesc,
+			},
+			wantErr: false,
+			want: []*articleItem{
+				{
+					Slug:         "article-2",
+					ItemType:     ItemTypeArticle,
+					Status:       StatusPublished,
+					FilterTag:    tagAll,
+					Title:        "Article 2",
+					Source:       "www.kanaru.me",
+					ContentKey:   "article-2/content.md",
+					Tags:         []string{"tag2", "tag3"},
+					PV:           0,
+					ThumbnailURL: "https://example.com/thumbnail2.jpg",
+				},
+				{
+					Slug:         "article-1",
+					ItemType:     ItemTypeArticle,
+					Status:       StatusPublished,
+					FilterTag:    tagAll,
+					Title:        "Article 1",
+					Source:       "www.kanaru.me",
+					ContentKey:   "article-1/content.md",
+					Tags:         []string{"tag1", "tag2"},
+					PV:           0,
+					ThumbnailURL: "https://example.com/thumbnail1.jpg",
 				},
 			},
 		},

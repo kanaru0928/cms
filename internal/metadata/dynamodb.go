@@ -231,6 +231,8 @@ func (r *DynamoDBRepository) ListArticles(ctx context.Context, props listArticle
 		filterTag = props.tag
 	}
 
+	sortOrder := props.order == SortOrderAsc
+
 	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String(r.tableName),
 		IndexName:              aws.String(gsiStatusTagUpdatedAt),
@@ -243,7 +245,7 @@ func (r *DynamoDBRepository) ListArticles(ctx context.Context, props listArticle
 			":status":     &types.AttributeValueMemberS{Value: string(props.status)},
 			":filter_tag": &types.AttributeValueMemberS{Value: filterTag},
 		},
-		ScanIndexForward: aws.Bool(false), // 更新日時の降順で取得
+		ScanIndexForward: aws.Bool(sortOrder),
 		Limit:            aws.Int32(props.limit),
 	}
 
