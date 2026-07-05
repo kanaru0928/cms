@@ -485,7 +485,7 @@ func TestPutArticle(t *testing.T) {
 					t.Errorf("Expected %d items, but got %d", len(tt.wantOutput), len(items))
 				} else {
 					for i, wantItem := range tt.wantOutput {
-						if !CompareArticleItems(items[i], wantItem) {
+						if !compareArticleItems(items[i], wantItem) {
 							t.Errorf("Expected item %d to be %+v, but got %+v", i, wantItem, items[i])
 						}
 					}
@@ -601,7 +601,7 @@ func TestListArticles(t *testing.T) {
 		beforeFunc func() error
 		input      *listArticlesDTO
 		wantErr    bool
-		want       []*articleItem
+		want       []listArticlesOutputItem
 	}{
 		{
 			name: "複数記事が存在する場合、全ての記事を取得できる",
@@ -641,12 +641,10 @@ func TestListArticles(t *testing.T) {
 				order:  SortOrderDesc,
 			},
 			wantErr: false,
-			want: []*articleItem{
+			want: []listArticlesOutputItem{
 				{
 					Slug:         "article-1",
-					ItemType:     ItemTypeArticle,
 					Status:       StatusPublished,
-					FilterTag:    tagAll,
 					Title:        "Article 1",
 					Source:       "www.kanaru.me",
 					ContentKey:   "article-1/content.md",
@@ -656,9 +654,7 @@ func TestListArticles(t *testing.T) {
 				},
 				{
 					Slug:         "article-2",
-					ItemType:     ItemTypeArticle,
 					Status:       StatusPublished,
-					FilterTag:    tagAll,
 					Title:        "Article 2",
 					Source:       "www.kanaru.me",
 					ContentKey:   "article-2/content.md",
@@ -715,12 +711,10 @@ func TestListArticles(t *testing.T) {
 				order: SortOrderDesc,
 			},
 			wantErr: false,
-			want: []*articleItem{
+			want: []listArticlesOutputItem{
 				{
 					Slug:         "article-1",
-					ItemType:     ItemTypeTag + "#tag2",
 					Status:       StatusPublished,
-					FilterTag:    "tag2",
 					Title:        "Article 1",
 					Source:       "www.kanaru.me",
 					ContentKey:   "article-1/content.md",
@@ -730,9 +724,7 @@ func TestListArticles(t *testing.T) {
 				},
 				{
 					Slug:         "article-2",
-					ItemType:     ItemTypeTag + "#tag2",
 					Status:       StatusPublished,
-					FilterTag:    "tag2",
 					Title:        "Article 2",
 					Source:       "www.kanaru.me",
 					ContentKey:   "article-2/content.md",
@@ -752,7 +744,7 @@ func TestListArticles(t *testing.T) {
 				order:  SortOrderDesc,
 			},
 			wantErr: false,
-			want:    []*articleItem{},
+			want:    []listArticlesOutputItem{},
 		},
 		{
 			name: "公開の記事のみを取得できる",
@@ -801,12 +793,10 @@ func TestListArticles(t *testing.T) {
 				order:  SortOrderDesc,
 			},
 			wantErr: false,
-			want: []*articleItem{
+			want: []listArticlesOutputItem{
 				{
 					Slug:         "article-1",
-					ItemType:     ItemTypeArticle,
 					Status:       StatusPublished,
-					FilterTag:    tagAll,
 					Title:        "Article 1",
 					Source:       "www.kanaru.me",
 					ContentKey:   "article-1/content.md",
@@ -816,9 +806,7 @@ func TestListArticles(t *testing.T) {
 				},
 				{
 					Slug:         "article-3",
-					ItemType:     ItemTypeArticle,
 					Status:       StatusPublished,
-					FilterTag:    tagAll,
 					Title:        "Article 3",
 					Source:       "www.kanaru.me",
 					ContentKey:   "article-3/content.md",
@@ -875,12 +863,10 @@ func TestListArticles(t *testing.T) {
 				order:  SortOrderDesc,
 			},
 			wantErr: false,
-			want: []*articleItem{
+			want: []listArticlesOutputItem{
 				{
 					Slug:         "article-2",
-					ItemType:     ItemTypeArticle,
 					Status:       StatusUnpublished,
-					FilterTag:    tagAll,
 					Title:        "Article 2",
 					Source:       "www.kanaru.me",
 					ContentKey:   "article-2/content.md",
@@ -890,9 +876,7 @@ func TestListArticles(t *testing.T) {
 				},
 				{
 					Slug:         "article-3",
-					ItemType:     ItemTypeArticle,
 					Status:       StatusUnpublished,
-					FilterTag:    tagAll,
 					Title:        "Article 3",
 					Source:       "www.kanaru.me",
 					ContentKey:   "article-3/content.md",
@@ -942,12 +926,10 @@ func TestListArticles(t *testing.T) {
 				order:  SortOrderAsc,
 			},
 			wantErr: false,
-			want: []*articleItem{
+			want: []listArticlesOutputItem{
 				{
 					Slug:         "article-1",
-					ItemType:     ItemTypeArticle,
 					Status:       StatusPublished,
-					FilterTag:    tagAll,
 					Title:        "Article 1",
 					Source:       "www.kanaru.me",
 					ContentKey:   "article-1/content.md",
@@ -957,9 +939,7 @@ func TestListArticles(t *testing.T) {
 				},
 				{
 					Slug:         "article-2",
-					ItemType:     ItemTypeArticle,
 					Status:       StatusPublished,
-					FilterTag:    tagAll,
 					Title:        "Article 2",
 					Source:       "www.kanaru.me",
 					ContentKey:   "article-2/content.md",
@@ -1009,12 +989,10 @@ func TestListArticles(t *testing.T) {
 				order:  SortOrderDesc,
 			},
 			wantErr: false,
-			want: []*articleItem{
+			want: []listArticlesOutputItem{
 				{
 					Slug:         "article-2",
-					ItemType:     ItemTypeArticle,
 					Status:       StatusPublished,
-					FilterTag:    tagAll,
 					Title:        "Article 2",
 					Source:       "www.kanaru.me",
 					ContentKey:   "article-2/content.md",
@@ -1024,9 +1002,7 @@ func TestListArticles(t *testing.T) {
 				},
 				{
 					Slug:         "article-1",
-					ItemType:     ItemTypeArticle,
 					Status:       StatusPublished,
-					FilterTag:    tagAll,
 					Title:        "Article 1",
 					Source:       "www.kanaru.me",
 					ContentKey:   "article-1/content.md",
@@ -1056,18 +1032,18 @@ func TestListArticles(t *testing.T) {
 				}
 			}
 
-			got, _, err := repo.ListArticles(context.Background(), *tt.input)
+			got, err := repo.ListArticles(context.Background(), *tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ListArticles() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
-			if len(got) != len(tt.want) {
-				t.Errorf("ListArticles() got length = %v, want %v", len(got), len(tt.want))
+			if len(got.Items) != len(tt.want) {
+				t.Errorf("ListArticles() got length = %v, want %v", len(got.Items), len(tt.want))
 			}
-			for i := range got {
-				if !CompareArticleItems(got[i], tt.want[i]) {
-					t.Errorf("ListArticles() got[%d] = %+v, want %+v", i, got[i], tt.want[i])
+			for i := range got.Items {
+				if !compareListArticlesOutputItems(got.Items[i], tt.want[i]) {
+					t.Errorf("ListArticles() got[%d] = %+v, want %+v", i, got.Items[i], tt.want[i])
 				}
 			}
 		})
@@ -1090,7 +1066,7 @@ func TestGetArticle(t *testing.T) {
 		beforeFunc func() error
 		input      *getArticleDTO
 		wantErr    error
-		want       *articleItem
+		want       *getArticleOutput
 	}{
 		{
 			name: "記事が存在する場合、記事を取得できる",
@@ -1109,11 +1085,9 @@ func TestGetArticle(t *testing.T) {
 				slug: "article-1",
 			},
 			wantErr: nil,
-			want: &articleItem{
+			want: &getArticleOutput{
 				Slug:         "article-1",
-				ItemType:     ItemTypeArticle,
 				Status:       StatusPublished,
-				FilterTag:    tagAll,
 				Title:        "Article 1",
 				Source:       "www.kanaru.me",
 				ContentKey:   "article-1/content.md",
@@ -1159,14 +1133,80 @@ func TestGetArticle(t *testing.T) {
 				return
 			}
 
-			if !CompareArticleItems(got, tt.want) {
+			if !compareGetArticleOutput(got, tt.want) {
 				t.Errorf("GetArticle() got = %+v, want %+v", got, tt.want)
 			}
 		})
 	}
 }
 
-func CompareArticleItems(a, b *articleItem) bool {
+func compareListArticlesOutputItems(a, b listArticlesOutputItem) bool {
+	if a.Slug != b.Slug {
+		return false
+	}
+	if a.Status != b.Status {
+		return false
+	}
+	if a.Title != b.Title {
+		return false
+	}
+	if a.Source != b.Source {
+		return false
+	}
+	if a.ContentKey != b.ContentKey {
+		return false
+	}
+	if len(a.Tags) != len(b.Tags) {
+		return false
+	}
+	for i := range a.Tags {
+		if a.Tags[i] != b.Tags[i] {
+			return false
+		}
+	}
+	if a.PV != b.PV {
+		return false
+	}
+	return true
+}
+
+func compareGetArticleOutput(a, b *getArticleOutput) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	if a.Slug != b.Slug {
+		return false
+	}
+	if a.Status != b.Status {
+		return false
+	}
+	if a.Title != b.Title {
+		return false
+	}
+	if a.Source != b.Source {
+		return false
+	}
+	if a.ContentKey != b.ContentKey {
+		return false
+	}
+	if len(a.Tags) != len(b.Tags) {
+		return false
+	}
+	for i := range a.Tags {
+		if a.Tags[i] != b.Tags[i] {
+			return false
+		}
+	}
+	if a.PV != b.PV {
+		return false
+	}
+	return true
+}
+
+func compareArticleItems(a, b *articleItem) bool {
 	if a == nil && b == nil {
 		return true
 	}

@@ -236,6 +236,24 @@ func NewListArticlesDTO(props ListArticlesDTOProps) (*listArticlesDTO, error) {
 	}, nil
 }
 
+type listArticlesOutputItem struct {
+	Slug         string
+	Status       StatusType
+	Title        string
+	Source       string
+	ContentKey   string
+	Tags         []string
+	UpdatedAt    string
+	CreatedAt    string
+	PV           int
+	ThumbnailURL string
+}
+
+type listArticlesOutput struct {
+	Items []listArticlesOutputItem
+	lastEvaluatedKey map[articlePK]types.AttributeValue
+}
+
 type getArticleDTO struct {
 	slug string
 }
@@ -253,4 +271,17 @@ func NewGetArticleDTO(props GetArticleDTOProps) (*getArticleDTO, error) {
 	return &getArticleDTO{
 		slug: props.Slug,
 	}, nil
+}
+
+type getArticleOutput struct {
+	Slug         string
+	Title        string
+	Source       string
+	ContentKey   string
+	Status       StatusType
+	Tags         []string
+	UpdatedAt    string
+	CreatedAt    string
+	PV           int
+	ThumbnailURL string
 }
