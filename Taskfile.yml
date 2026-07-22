@@ -13,3 +13,9 @@ tasks:
         trap "{{ .DOCKER_PATH }} compose down" EXIT
         go test -v ./...
     silent: true
+  
+  oapi-codegen:
+    desc: Generate Go code from OpenAPI specification
+    cmds:
+      - cd cms-schema && pnpm install && pnpm tsp compile .
+      - go tool oapi-codegen -config oapi-codegen.yaml ./cms-schema/tsp-output/schema/openapi.yaml
