@@ -1,24 +1,26 @@
 package handler
 
-import "net/http"
+import (
+	"github.com/kanaru0928/cms/internal/api"
+	"github.com/labstack/echo/v5"
+)
 
-type ArticleHandler struct {
-	mux *http.ServeMux
+// ArticlesDelete implements [api.ServerInterface].
+func (s *server) ArticlesDelete(ctx *echo.Context, slug string) error {
+	panic("unimplemented")
 }
 
-func NewArticleHandler() *ArticleHandler {
-	mux := http.NewServeMux()
-	handler := &ArticleHandler{mux: mux}
-
-	handler.mux.HandleFunc("GET /articles", handler.GetArticles)
-
-	return handler
+// ArticlesList implements [api.ServerInterface].
+func (s *server) ArticlesList(ctx *echo.Context, params api.ArticlesListParams) error {
+	panic("unimplemented")
 }
 
-func (h *ArticleHandler) GetArticles(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("List of articles"))
+// ArticlesRead implements [api.ServerInterface].
+func (s *server) ArticlesRead(ctx *echo.Context, slug string) error {
+	panic("unimplemented")
 }
 
-func (h *ArticleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	h.mux.ServeHTTP(w, r)
+// ArticlesUpsert implements [api.ServerInterface].
+func (s *server) ArticlesUpsert(ctx *echo.Context, slug string) error {
+	panic("unimplemented")
 }
