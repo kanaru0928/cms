@@ -10,19 +10,19 @@ import (
 )
 
 type cognitoAuthenticator struct {
-	cache *jwksCache
+	fetcher JWKSFetcher
 }
 
 func NewCognitoAuthenticator(ctx context.Context, jwksURL string) (*cognitoAuthenticator, error) {
 	cache := NewJWKSCache(jwksURL)
 
 	return &cognitoAuthenticator{
-		cache: cache,
+		fetcher: cache,
 	}, nil
 }
 
 func (c *cognitoAuthenticator) validate(ctx context.Context, token string) (jwt.Token, error) {
-	jwks, err := c.cache.GetJWKSURL(ctx)
+	jwks, err := c.fetcher.GetJWKS(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get JWKS: %w", err)
 	}

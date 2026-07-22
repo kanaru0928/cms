@@ -20,7 +20,7 @@ func NewJWKSCache(jwksURL string) *jwksCache {
 	}
 }
 
-func (c *jwksCache) GetJWKSURL(ctx context.Context) (jwk.Set, error) {
+func (c *jwksCache) GetJWKS(ctx context.Context) (jwk.Set, error) {
 	if c.jwks == nil {
 		jwks, err := fetchJWKS(ctx, c.jwksURL)
 		if err != nil {
