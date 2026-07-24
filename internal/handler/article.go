@@ -42,7 +42,7 @@ func (s *server) ArticlesList(ctx *echo.Context, params api.ArticlesListParams) 
 
 	listArticlesDTO, err := metadata.NewListArticlesDTO(metadata.ListArticlesDTOProps{
 		Tag: tag,
-		Limit: limit,
+		Limit: int32(limit),
 		Status: status,
 		Order: order,
 	})
