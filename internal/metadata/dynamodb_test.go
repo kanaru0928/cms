@@ -1032,7 +1032,7 @@ func TestListArticles(t *testing.T) {
 				}
 			}
 
-			got, err := repo.ListArticles(context.Background(), *tt.input)
+			got, err := repo.ListArticles(context.Background(), tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ListArticles() error = %v, wantErr %v", err, tt.wantErr)
 				return

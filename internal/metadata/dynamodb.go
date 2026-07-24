@@ -223,7 +223,7 @@ func subtractTags(existingTags, newTags []string) []string {
 	return tagsToRemove
 }
 
-func (r *DynamoDBRepository) ListArticles(ctx context.Context, props listArticlesDTO) (*listArticlesOutput, error) {
+func (r *DynamoDBRepository) ListArticles(ctx context.Context, props *listArticlesDTO) (*listArticlesOutput, error) {
 	var filterTag string
 	if props.tag == "" {
 		filterTag = tagAll

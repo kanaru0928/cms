@@ -6,17 +6,29 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/kanaru0928/cms/internal/api"
 	"github.com/kanaru0928/cms/internal/auth"
+	"github.com/kanaru0928/cms/internal/content"
+	"github.com/kanaru0928/cms/internal/metadata"
 	"github.com/labstack/echo/v5"
 	middleware "github.com/oapi-codegen/echo-v5-middleware"
 )
 
 type server struct {
-	authenticator auth.Authenticator
+	authenticator     auth.Authenticator
+	contentRepository content.Repository
+	metadataRepository metadata.Repository
 }
 
-func NewServer(authenticator auth.Authenticator) *server {
+type ServerDependencies struct {
+	Authenticator      auth.Authenticator
+	ContentRepository  content.Repository
+	MetadataRepository metadata.Repository
+}
+
+func NewServer(dependencies *ServerDependencies) *server {
 	return &server{
-		authenticator: authenticator,
+		authenticator:     dependencies.Authenticator,
+		contentRepository: dependencies.ContentRepository,
+		metadataRepository: dependencies.MetadataRepository,
 	}
 }
 
