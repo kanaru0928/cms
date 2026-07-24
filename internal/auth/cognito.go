@@ -60,3 +60,11 @@ func (c *cognitoAuthenticator) CreateAuthenticationFunc() openapi3filter.Authent
 		return nil
 	}
 }
+
+func (c *cognitoAuthenticator) GetTokenFromContext(ctx context.Context) (jwt.Token, bool) {
+	token, ok := ctx.Value("token").(jwt.Token)
+	if !ok {
+		return nil, false
+	}
+	return token, true
+}

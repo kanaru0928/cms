@@ -15,7 +15,62 @@ func (s *server) ArticlesDelete(ctx *echo.Context, slug string) error {
 
 // ArticlesList implements [api.ServerInterface].
 func (s *server) ArticlesList(ctx *echo.Context, params api.ArticlesListParams) error {
-	panic("unimplemented")
+	_, found := s.authenticator.GetTokenFromContext(ctx.Request().Context())
+
+	tag := ""
+	if params.Tag != nil {
+		tag = *params.Tag
+	}
+
+	limit := 10
+	if params.Limit != nil {
+		limit = int(*params.Limit)
+	}
+
+	status := string(metadata.StatusPublished)
+	if params.Status != nil {
+		if !found && string(*params.Status) == string(metadata.StatusUnpublished) {
+			return ctx.JSON(403, api.Error{Error: "unauthorized to access unpublished articles"})
+		}
+		status = string(*params.Status)
+	}
+
+	order := string(metadata.SortOrderDesc)
+	if params.Order != nil {
+		order = string(*params.Order)
+	}
+
+	listArticlesDTO, err := metadata.NewListArticlesDTO(metadata.ListArticlesDTOProps{
+		Tag: tag,
+		Limit: limit,
+		Status: status,
+		Order: order,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create ListArticlesDTO: %w", err)
+	}
+
+	articles, err := s.metadataRepository.ListArticles(ctx.Request().Context(), listArticlesDTO)
+	if err != nil {
+		return fmt.Errorf("failed to list articles: %w", err)
+	}
+
+	response := make([]api.ArticleMetadata, len(articles.Items))
+	for i, article := range articles.Items {
+		response[i] = api.ArticleMetadata{
+			Slug: article.Slug,
+			Title: article.Title,
+			Tags: article.Tags,
+			Status: api.ArticleStatus(article.Status),
+			CreatedAt: article.CreatedAt,
+			UpdatedAt: article.UpdatedAt,
+			Pv: float32(article.PV),
+			Source: article.Source,
+			ThumbnailUrl: article.ThumbnailURL,
+		}
+	}
+
+	return ctx.JSON(200, response)
 }
 
 // ArticlesRead implements [api.ServerInterface].

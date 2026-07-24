@@ -204,14 +204,14 @@ type getArticleTagsOutputItem struct {
 type listArticlesDTO struct {
 	tag    string
 	status StatusType
-	limit  int32
+	limit  int
 	order  SortOrderType
 }
 
 type ListArticlesDTOProps struct {
 	Tag    string
 	Status string
-	Limit  int32
+	Limit  int
 	Order  string
 }
 
