@@ -236,7 +236,7 @@ func NewListArticlesDTO(props ListArticlesDTOProps) (*listArticlesDTO, error) {
 	}, nil
 }
 
-type listArticlesOutputItem struct {
+type ListArticlesOutputItem struct {
 	Slug         string
 	Status       StatusType
 	Title        string
@@ -249,8 +249,8 @@ type listArticlesOutputItem struct {
 	ThumbnailURL string
 }
 
-type listArticlesOutput struct {
-	Items []listArticlesOutputItem
+type ListArticlesOutput struct {
+	Items []ListArticlesOutputItem
 	lastEvaluatedKey map[articlePK]types.AttributeValue
 }
 

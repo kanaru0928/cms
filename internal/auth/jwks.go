@@ -9,19 +9,19 @@ import (
 	"github.com/lestrrat-go/jwx/v4/jwt"
 )
 
-type cognitoAuthenticator struct {
-	fetcher JWKSFetcher
+type jwksAuthenticator struct {
+	fetcher Fetcher
 }
 
-func NewCognitoAuthenticator(ctx context.Context, jwksURL string) (*cognitoAuthenticator, error) {
+func NewCognitoAuthenticator(ctx context.Context, jwksURL string) (*jwksAuthenticator, error) {
 	cache := NewJWKSCache(jwksURL)
 
-	return &cognitoAuthenticator{
+	return &jwksAuthenticator{
 		fetcher: cache,
 	}, nil
 }
 
-func (c *cognitoAuthenticator) validate(ctx context.Context, token string) (jwt.Token, error) {
+func (c *jwksAuthenticator) validate(ctx context.Context, token string) (jwt.Token, error) {
 	jwks, err := c.fetcher.GetJWKS(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get JWKS: %w", err)
@@ -35,7 +35,7 @@ func (c *cognitoAuthenticator) validate(ctx context.Context, token string) (jwt.
 	return parsedToken, nil
 }
 
-func (c *cognitoAuthenticator) CreateAuthenticationFunc() openapi3filter.AuthenticationFunc {
+func (c *jwksAuthenticator) CreateAuthenticationFunc() openapi3filter.AuthenticationFunc {
 	return func(ctx context.Context, input *openapi3filter.AuthenticationInput) error {
 		req := input.RequestValidationInput.Request
 		authorization := req.Header.Get("Authorization")
@@ -61,7 +61,7 @@ func (c *cognitoAuthenticator) CreateAuthenticationFunc() openapi3filter.Authent
 	}
 }
 
-func (c *cognitoAuthenticator) GetTokenFromContext(ctx context.Context) (jwt.Token, bool) {
+func (c *jwksAuthenticator) GetTokenFromContext(ctx context.Context) (jwt.Token, bool) {
 	token, ok := ctx.Value("token").(jwt.Token)
 	if !ok {
 		return nil, false

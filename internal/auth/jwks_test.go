@@ -87,7 +87,7 @@ func TestCreateAuthenticationFunc(t *testing.T) {
 		name          string
 		authHeader    string
 		setAuthHeader bool
-		fetcher       JWKSFetcher
+		fetcher       Fetcher
 		wantErr       bool
 		wantToken     bool
 	}{
@@ -141,7 +141,7 @@ func TestCreateAuthenticationFunc(t *testing.T) {
 				},
 			}
 
-			authenticator := &cognitoAuthenticator{fetcher: tt.fetcher}
+			authenticator := &jwksAuthenticator{fetcher: tt.fetcher}
 			authFn := authenticator.CreateAuthenticationFunc()
 
 			err := authFn(context.Background(), input)

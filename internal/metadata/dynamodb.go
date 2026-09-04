@@ -223,7 +223,7 @@ func subtractTags(existingTags, newTags []string) []string {
 	return tagsToRemove
 }
 
-func (r *DynamoDBRepository) ListArticles(ctx context.Context, props *listArticlesDTO) (*listArticlesOutput, error) {
+func (r *DynamoDBRepository) ListArticles(ctx context.Context, props *listArticlesDTO) (*ListArticlesOutput, error) {
 	var filterTag string
 	if props.tag == "" {
 		filterTag = tagAll
@@ -268,9 +268,9 @@ func (r *DynamoDBRepository) ListArticles(ctx context.Context, props *listArticl
 		}
 	}
 
-	articleItems := make([]listArticlesOutputItem, len(articles))
+	articleItems := make([]ListArticlesOutputItem, len(articles))
 	for i, article := range articles {
-		articleItems[i] = listArticlesOutputItem{
+		articleItems[i] = ListArticlesOutputItem{
 			Slug:         article.Slug,
 			Status:       article.Status,
 			Title:        article.Title,
@@ -284,7 +284,7 @@ func (r *DynamoDBRepository) ListArticles(ctx context.Context, props *listArticl
 		}
 	}
 
-	return &listArticlesOutput{
+	return &ListArticlesOutput{
 		Items:            articleItems,
 		lastEvaluatedKey: lastKey,
 	}, nil

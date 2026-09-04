@@ -601,7 +601,7 @@ func TestListArticles(t *testing.T) {
 		beforeFunc func() error
 		input      *listArticlesDTO
 		wantErr    bool
-		want       []listArticlesOutputItem
+		want       []ListArticlesOutputItem
 	}{
 		{
 			name: "複数記事が存在する場合、全ての記事を取得できる",
@@ -641,7 +641,7 @@ func TestListArticles(t *testing.T) {
 				order:  SortOrderDesc,
 			},
 			wantErr: false,
-			want: []listArticlesOutputItem{
+			want: []ListArticlesOutputItem{
 				{
 					Slug:         "article-1",
 					Status:       StatusPublished,
@@ -711,7 +711,7 @@ func TestListArticles(t *testing.T) {
 				order: SortOrderDesc,
 			},
 			wantErr: false,
-			want: []listArticlesOutputItem{
+			want: []ListArticlesOutputItem{
 				{
 					Slug:         "article-1",
 					Status:       StatusPublished,
@@ -744,7 +744,7 @@ func TestListArticles(t *testing.T) {
 				order:  SortOrderDesc,
 			},
 			wantErr: false,
-			want:    []listArticlesOutputItem{},
+			want:    []ListArticlesOutputItem{},
 		},
 		{
 			name: "公開の記事のみを取得できる",
@@ -793,7 +793,7 @@ func TestListArticles(t *testing.T) {
 				order:  SortOrderDesc,
 			},
 			wantErr: false,
-			want: []listArticlesOutputItem{
+			want: []ListArticlesOutputItem{
 				{
 					Slug:         "article-1",
 					Status:       StatusPublished,
@@ -863,7 +863,7 @@ func TestListArticles(t *testing.T) {
 				order:  SortOrderDesc,
 			},
 			wantErr: false,
-			want: []listArticlesOutputItem{
+			want: []ListArticlesOutputItem{
 				{
 					Slug:         "article-2",
 					Status:       StatusUnpublished,
@@ -926,7 +926,7 @@ func TestListArticles(t *testing.T) {
 				order:  SortOrderAsc,
 			},
 			wantErr: false,
-			want: []listArticlesOutputItem{
+			want: []ListArticlesOutputItem{
 				{
 					Slug:         "article-1",
 					Status:       StatusPublished,
@@ -989,7 +989,7 @@ func TestListArticles(t *testing.T) {
 				order:  SortOrderDesc,
 			},
 			wantErr: false,
-			want: []listArticlesOutputItem{
+			want: []ListArticlesOutputItem{
 				{
 					Slug:         "article-2",
 					Status:       StatusPublished,
@@ -1140,7 +1140,7 @@ func TestGetArticle(t *testing.T) {
 	}
 }
 
-func compareListArticlesOutputItems(a, b listArticlesOutputItem) bool {
+func compareListArticlesOutputItems(a, b ListArticlesOutputItem) bool {
 	if a.Slug != b.Slug {
 		return false
 	}
