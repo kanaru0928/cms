@@ -1,3 +1,5 @@
+//go:generate go tool mockgen -source=authenticator.go -destination=mock_authenticator.go -package=auth
+
 package auth
 
 import (
