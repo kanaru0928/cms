@@ -1,114 +1,114 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/kanaru0928/cms/internal/api"
 	"github.com/kanaru0928/cms/internal/metadata"
-	"github.com/labstack/echo/v5"
 )
 
-// ArticlesDelete implements [api.ServerInterface].
-func (s *server) ArticlesDelete(ctx *echo.Context, slug string) error {
+// ArticlesDelete implements [api.StrictServerInterface].
+func (s *server) ArticlesDelete(ctx context.Context, request api.ArticlesDeleteRequestObject) (api.ArticlesDeleteResponseObject, error) {
 	panic("unimplemented")
 }
 
-// ArticlesList implements [api.ServerInterface].
-func (s *server) ArticlesList(ctx *echo.Context, params api.ArticlesListParams) error {
-	_, found := s.authenticator.GetTokenFromContext(ctx.Request().Context())
+// ArticlesList implements [api.StrictServerInterface].
+func (s *server) ArticlesList(ctx context.Context, request api.ArticlesListRequestObject) (api.ArticlesListResponseObject, error) {
+	_, found := s.authenticator.GetTokenFromContext(ctx)
 
 	tag := ""
-	if params.Tag != nil {
-		tag = *params.Tag
+	if request.Params.Tag != nil {
+		tag = *request.Params.Tag
 	}
 
 	limit := 10
-	if params.Limit != nil {
-		limit = int(*params.Limit)
+	if request.Params.Limit != nil {
+		limit = int(*request.Params.Limit)
 	}
 
 	status := string(metadata.StatusPublished)
-	if params.Status != nil {
-		if !found && string(*params.Status) == string(metadata.StatusUnpublished) {
-			return ctx.JSON(403, api.Error{Error: "unauthorized to access unpublished articles"})
+	if request.Params.Status != nil {
+		if !found && string(*request.Params.Status) == string(metadata.StatusUnpublished) {
+			return api.ArticlesList401JSONResponse{Error: "unauthorized to access unpublished articles"}, nil
 		}
-		status = string(*params.Status)
+		status = string(*request.Params.Status)
 	}
 
 	order := string(metadata.SortOrderDesc)
-	if params.Order != nil {
-		order = string(*params.Order)
+	if request.Params.Order != nil {
+		order = string(*request.Params.Order)
 	}
 
 	listArticlesDTO, err := metadata.NewListArticlesDTO(metadata.ListArticlesDTOProps{
-		Tag: tag,
-		Limit: int32(limit),
+		Tag:    tag,
+		Limit:  int32(limit),
 		Status: status,
-		Order: order,
+		Order:  order,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create ListArticlesDTO: %w", err)
+		return nil, fmt.Errorf("failed to create ListArticlesDTO: %w", err)
 	}
 
-	articles, err := s.metadataRepository.ListArticles(ctx.Request().Context(), listArticlesDTO)
+	articles, err := s.metadataRepository.ListArticles(ctx, listArticlesDTO)
 	if err != nil {
-		return fmt.Errorf("failed to list articles: %w", err)
+		return nil, fmt.Errorf("failed to list articles: %w", err)
 	}
 
 	response := make([]api.ArticleMetadata, len(articles.Items))
 	for i, article := range articles.Items {
 		response[i] = api.ArticleMetadata{
-			Slug: article.Slug,
-			Title: article.Title,
-			Tags: article.Tags,
-			Status: api.ArticleStatus(article.Status),
-			CreatedAt: article.CreatedAt,
-			UpdatedAt: article.UpdatedAt,
-			Pv: float32(article.PV),
-			Source: article.Source,
+			Slug:         article.Slug,
+			Title:        article.Title,
+			Tags:         article.Tags,
+			Status:       api.ArticleStatus(article.Status),
+			CreatedAt:    article.CreatedAt,
+			UpdatedAt:    article.UpdatedAt,
+			Pv:           float32(article.PV),
+			Source:       article.Source,
 			ThumbnailUrl: article.ThumbnailURL,
 		}
 	}
 
-	return ctx.JSON(200, response)
+	return api.ArticlesList200JSONResponse(response), nil
 }
 
-// ArticlesRead implements [api.ServerInterface].
-func (s *server) ArticlesRead(ctx *echo.Context, slug string) error {
+// ArticlesRead implements [api.StrictServerInterface].
+func (s *server) ArticlesRead(ctx context.Context, request api.ArticlesReadRequestObject) (api.ArticlesReadResponseObject, error) {
 	getArticleDTO, err := metadata.NewGetArticleDTO(metadata.GetArticleDTOProps{
-		Slug: slug,
+		Slug: request.Slug,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create GetArticleDTO: %w", err)
+		return nil, fmt.Errorf("failed to create GetArticleDTO: %w", err)
 	}
 
-	article, err := s.metadataRepository.GetArticle(ctx.Request().Context(), getArticleDTO)
+	article, err := s.metadataRepository.GetArticle(ctx, getArticleDTO)
 	if err != nil {
-		return fmt.Errorf("failed to get article: %w", err)
+		return nil, fmt.Errorf("failed to get article: %w", err)
 	}
 
-	content, err := s.contentRepository.GetTextContent(ctx.Request().Context(), article.ContentKey)
+	content, err := s.contentRepository.GetTextContent(ctx, article.ContentKey)
 	if err != nil {
-		return fmt.Errorf("failed to get content: %w", err)
+		return nil, fmt.Errorf("failed to get content: %w", err)
 	}
 
 	response := api.ArticleDetail{
-		Content: string(content),
-		CreatedAt: article.CreatedAt,
-		UpdatedAt: article.UpdatedAt,
-		Slug: article.Slug,
-		Tags: article.Tags,
-		Pv: float32(article.PV),
-		Source: article.Source,
-		Title: article.Title,
-		Status: api.ArticleStatus(article.Status),
+		Content:      string(content),
+		CreatedAt:    article.CreatedAt,
+		UpdatedAt:    article.UpdatedAt,
+		Slug:         article.Slug,
+		Tags:         article.Tags,
+		Pv:           float32(article.PV),
+		Source:       article.Source,
+		Title:        article.Title,
+		Status:       api.ArticleStatus(article.Status),
 		ThumbnailUrl: article.ThumbnailURL,
 	}
 
-	return ctx.JSON(200, response)
+	return api.ArticlesRead200JSONResponse(response), nil
 }
 
-// ArticlesUpsert implements [api.ServerInterface].
-func (s *server) ArticlesUpsert(ctx *echo.Context, slug string) error {
+// ArticlesUpsert implements [api.StrictServerInterface].
+func (s *server) ArticlesUpsert(ctx context.Context, request api.ArticlesUpsertRequestObject) (api.ArticlesUpsertResponseObject, error) {
 	panic("unimplemented")
 }

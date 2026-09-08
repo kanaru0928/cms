@@ -13,8 +13,8 @@ import (
 )
 
 type server struct {
-	authenticator     auth.Authenticator
-	contentRepository content.Repository
+	authenticator      auth.Authenticator
+	contentRepository  content.Repository
 	metadataRepository metadata.Repository
 }
 
@@ -26,8 +26,8 @@ type ServerDependencies struct {
 
 func NewServer(dependencies *ServerDependencies) *server {
 	return &server{
-		authenticator:     dependencies.Authenticator,
-		contentRepository: dependencies.ContentRepository,
+		authenticator:      dependencies.Authenticator,
+		contentRepository:  dependencies.ContentRepository,
 		metadataRepository: dependencies.MetadataRepository,
 	}
 }

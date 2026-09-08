@@ -151,7 +151,7 @@ func TestCreateAuthenticationFunc(t *testing.T) {
 			}
 
 			if tt.wantToken {
-				if input.RequestValidationInput.Request.Context().Value("token") == nil {
+				if _, ok := authenticator.GetTokenFromContext(input.RequestValidationInput.Request.Context()); !ok {
 					t.Errorf("expected token to be set in request context, but it was not")
 				}
 			}

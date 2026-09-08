@@ -6,8 +6,12 @@ import (
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3filter"
+	"github.com/labstack/echo/v5"
 	"github.com/lestrrat-go/jwx/v4/jwt"
+	echomiddleware "github.com/oapi-codegen/echo-v5-middleware"
 )
+
+type tokenContextKey struct{}
 
 type jwksAuthenticator struct {
 	fetcher Fetcher
@@ -40,29 +44,34 @@ func (c *jwksAuthenticator) CreateAuthenticationFunc() openapi3filter.Authentica
 		req := input.RequestValidationInput.Request
 		authorization := req.Header.Get("Authorization")
 		if authorization == "" {
-			return fmt.Errorf("missing Authorization header")
+			return echo.ErrUnauthorized
 		}
 
 		if !strings.HasPrefix(authorization, "Bearer ") {
-			return fmt.Errorf("invalid Authorization header format")
+			return echo.ErrUnauthorized.Wrap(fmt.Errorf("invalid Authorization header format"))
 		}
 
 		token := strings.TrimPrefix(authorization, "Bearer ")
 
 		parsedToken, err := c.validate(ctx, token)
 		if err != nil {
-			return fmt.Errorf("failed to validate token: %w", err)
+			return echo.ErrUnauthorized.Wrap(fmt.Errorf("failed to validate token: %w", err))
 		}
 
-		ctxWithToken := context.WithValue(ctx, "token", parsedToken)
-		input.RequestValidationInput.Request = req.WithContext(ctxWithToken)
+		ctxWithToken := context.WithValue(req.Context(), tokenContextKey{}, parsedToken)
+		authenticatedRequest := req.WithContext(ctxWithToken)
+		input.RequestValidationInput.Request = authenticatedRequest
+
+		if echoContext := echomiddleware.GetEchoContext(ctx); echoContext != nil {
+			echoContext.SetRequest(authenticatedRequest)
+		}
 
 		return nil
 	}
 }
 
 func (c *jwksAuthenticator) GetTokenFromContext(ctx context.Context) (jwt.Token, bool) {
-	token, ok := ctx.Value("token").(jwt.Token)
+	token, ok := ctx.Value(tokenContextKey{}).(jwt.Token)
 	if !ok {
 		return nil, false
 	}

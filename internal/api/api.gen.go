@@ -6,7 +6,9 @@ package api
 import (
 	"bytes"
 	"compress/flate"
+	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -280,32 +282,419 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 
 }
 
+type ArticlesListRequestObject struct {
+	Params ArticlesListParams
+}
+
+type ArticlesListResponseObject interface {
+	VisitArticlesListResponse(w http.ResponseWriter) error
+}
+
+type ArticlesList200JSONResponse []ArticleMetadata
+
+func (response ArticlesList200JSONResponse) VisitArticlesListResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ArticlesList401JSONResponse Error
+
+func (response ArticlesList401JSONResponse) VisitArticlesListResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ArticlesList500JSONResponse Error
+
+func (response ArticlesList500JSONResponse) VisitArticlesListResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ArticlesDeleteRequestObject struct {
+	Slug string `json:"slug"`
+}
+
+type ArticlesDeleteResponseObject interface {
+	VisitArticlesDeleteResponse(w http.ResponseWriter) error
+}
+
+type ArticlesDelete200JSONResponse DeleteSuccess
+
+func (response ArticlesDelete200JSONResponse) VisitArticlesDeleteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ArticlesDelete401JSONResponse Error
+
+func (response ArticlesDelete401JSONResponse) VisitArticlesDeleteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ArticlesDelete404JSONResponse Error
+
+func (response ArticlesDelete404JSONResponse) VisitArticlesDeleteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ArticlesDelete500JSONResponse Error
+
+func (response ArticlesDelete500JSONResponse) VisitArticlesDeleteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ArticlesReadRequestObject struct {
+	Slug string `json:"slug"`
+}
+
+type ArticlesReadResponseObject interface {
+	VisitArticlesReadResponse(w http.ResponseWriter) error
+}
+
+type ArticlesRead200JSONResponse ArticleDetail
+
+func (response ArticlesRead200JSONResponse) VisitArticlesReadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ArticlesRead401JSONResponse Error
+
+func (response ArticlesRead401JSONResponse) VisitArticlesReadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ArticlesRead404JSONResponse Error
+
+func (response ArticlesRead404JSONResponse) VisitArticlesReadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ArticlesRead500JSONResponse Error
+
+func (response ArticlesRead500JSONResponse) VisitArticlesReadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ArticlesUpsertRequestObject struct {
+	Slug string `json:"slug"`
+	Body *ArticlesUpsertJSONRequestBody
+}
+
+type ArticlesUpsertResponseObject interface {
+	VisitArticlesUpsertResponse(w http.ResponseWriter) error
+}
+
+type ArticlesUpsert200JSONResponse ArticleMetadata
+
+func (response ArticlesUpsert200JSONResponse) VisitArticlesUpsertResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ArticlesUpsert201JSONResponse ArticleMetadata
+
+func (response ArticlesUpsert201JSONResponse) VisitArticlesUpsertResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ArticlesUpsert401JSONResponse Error
+
+func (response ArticlesUpsert401JSONResponse) VisitArticlesUpsertResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ArticlesUpsert500JSONResponse Error
+
+func (response ArticlesUpsert500JSONResponse) VisitArticlesUpsertResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+// StrictServerInterface represents all server handlers.
+type StrictServerInterface interface {
+	// ArticlesList 記事一覧を取得
+	// (GET /api/articles)
+	ArticlesList(ctx context.Context, request ArticlesListRequestObject) (ArticlesListResponseObject, error)
+	// ArticlesDelete 記事を削除
+	// (DELETE /api/articles/{slug})
+	ArticlesDelete(ctx context.Context, request ArticlesDeleteRequestObject) (ArticlesDeleteResponseObject, error)
+	// ArticlesRead 記事詳細を取得
+	// (GET /api/articles/{slug})
+	ArticlesRead(ctx context.Context, request ArticlesReadRequestObject) (ArticlesReadResponseObject, error)
+	// ArticlesUpsert 記事を作成または更新
+	// (PUT /api/articles/{slug})
+	ArticlesUpsert(ctx context.Context, request ArticlesUpsertRequestObject) (ArticlesUpsertResponseObject, error)
+}
+
+type StrictHandlerFunc func(ctx *echo.Context, request any) (any, error)
+type StrictMiddlewareFunc func(f StrictHandlerFunc, operationID string) StrictHandlerFunc
+
+func NewStrictHandler(ssi StrictServerInterface, middlewares []StrictMiddlewareFunc) ServerInterface {
+	return &strictHandler{ssi: ssi, middlewares: middlewares}
+}
+
+type strictHandler struct {
+	ssi         StrictServerInterface
+	middlewares []StrictMiddlewareFunc
+}
+
+// ArticlesList operation middleware
+func (sh *strictHandler) ArticlesList(ctx *echo.Context, params ArticlesListParams) error {
+	var request ArticlesListRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ArticlesList(ctx.Request().Context(), request.(ArticlesListRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ArticlesList")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ArticlesListResponseObject); ok {
+		return validResponse.VisitArticlesListResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ArticlesDelete operation middleware
+func (sh *strictHandler) ArticlesDelete(ctx *echo.Context, slug string) error {
+	var request ArticlesDeleteRequestObject
+
+	request.Slug = slug
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ArticlesDelete(ctx.Request().Context(), request.(ArticlesDeleteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ArticlesDelete")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ArticlesDeleteResponseObject); ok {
+		return validResponse.VisitArticlesDeleteResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ArticlesRead operation middleware
+func (sh *strictHandler) ArticlesRead(ctx *echo.Context, slug string) error {
+	var request ArticlesReadRequestObject
+
+	request.Slug = slug
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ArticlesRead(ctx.Request().Context(), request.(ArticlesReadRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ArticlesRead")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ArticlesReadResponseObject); ok {
+		return validResponse.VisitArticlesReadResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ArticlesUpsert operation middleware
+func (sh *strictHandler) ArticlesUpsert(ctx *echo.Context, slug string) error {
+	var request ArticlesUpsertRequestObject
+
+	request.Slug = slug
+
+	var body ArticlesUpsertJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ArticlesUpsert(ctx.Request().Context(), request.(ArticlesUpsertRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ArticlesUpsert")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ArticlesUpsertResponseObject); ok {
+		return validResponse.VisitArticlesUpsertResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // Base64 encoded, compressed with deflate, json marshaled OpenAPI spec.
 // Stored as a slice of fixed-width chunks rather than one concatenated
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

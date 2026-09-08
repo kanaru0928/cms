@@ -39,7 +39,7 @@ func TestArticlesList(t *testing.T) {
 		}, nil)
 		authenticatorMock.EXPECT().GetTokenFromContext(gomock.Any()).Return(nil, false)
 
-		if err := s.ArticlesList(c, api.ArticlesListParams{}); err != nil {
+		if _, err := s.ArticlesList(c.Request().Context(), api.ArticlesListRequestObject{}); err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
@@ -48,7 +48,7 @@ func TestArticlesList(t *testing.T) {
 		}
 	})
 
-	t.Run("認証なしで非公開記事を取得しようとすると 403 が返る", func(t *testing.T) {
+	t.Run("認証なしで非公開記事を取得しようとすると 401 が返る", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/articles?status=unpublished", nil)
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
@@ -63,12 +63,16 @@ func TestArticlesList(t *testing.T) {
 
 		status := api.ArticleStatus(metadata.StatusUnpublished)
 
-		if err := s.ArticlesList(c, api.ArticlesListParams{Status: &status}); err != nil {
+		response, err := s.ArticlesList(c.Request().Context(), api.ArticlesListRequestObject{Params: api.ArticlesListParams{Status: &status}})
+		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
+		if err := response.VisitArticlesListResponse(rec); err != nil {
+			t.Fatalf("expected response to be written, got %v", err)
+		}
 
-		if rec.Code != http.StatusForbidden {
-			t.Fatalf("expected status code %d, got %d", http.StatusForbidden, rec.Code)
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("expected status code %d, got %d", http.StatusUnauthorized, rec.Code)
 		}
 	})
 
@@ -91,7 +95,7 @@ func TestArticlesList(t *testing.T) {
 
 		authenticatorMock.EXPECT().GetTokenFromContext(gomock.Any()).Return(jwt.New(), true)
 
-		if err := s.ArticlesList(c, api.ArticlesListParams{}); err != nil {
+		if _, err := s.ArticlesList(c.Request().Context(), api.ArticlesListRequestObject{}); err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
@@ -121,7 +125,7 @@ func TestArticlesList(t *testing.T) {
 
 		status := api.ArticleStatus(metadata.StatusUnpublished)
 
-		if err := s.ArticlesList(c, api.ArticlesListParams{Status: &status}); err != nil {
+		if _, err := s.ArticlesList(c.Request().Context(), api.ArticlesListRequestObject{Params: api.ArticlesListParams{Status: &status}}); err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
 

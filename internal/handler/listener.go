@@ -52,7 +52,7 @@ func DefineListener(port int) {
 
 	e.Use(mw...)
 
-	api.RegisterHandlers(e, server)
+	api.RegisterHandlers(e, api.NewStrictHandler(server, nil))
 
 	if err := e.Start(fmt.Sprintf(":%d", port)); err != nil && err != http.ErrServerClosed {
 		e.Logger.Error("shutting down the server", "error", err)
