@@ -2,10 +2,13 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/kanaru0928/cms/internal/api"
+	"github.com/kanaru0928/cms/internal/article"
 	"github.com/kanaru0928/cms/internal/metadata"
+	"github.com/kanaru0928/cms/internal/myerrors"
 )
 
 // ArticlesDelete implements [api.StrictServerInterface].
@@ -110,5 +113,37 @@ func (s *server) ArticlesRead(ctx context.Context, request api.ArticlesReadReque
 
 // ArticlesUpsert implements [api.StrictServerInterface].
 func (s *server) ArticlesUpsert(ctx context.Context, request api.ArticlesUpsertRequestObject) (api.ArticlesUpsertResponseObject, error) {
-	panic("unimplemented")
+	output, err := s.articleService.UpsertArticle(ctx, article.UpsertArticleProps{
+		Slug:         request.Slug,
+		Title:        request.Body.Title,
+		ContentBody:  request.Body.ContentBody,
+		Source:       request.Body.Source,
+		Status:       string(request.Body.Status),
+		Tags:         request.Body.Tags,
+		ThumbnailURL: request.Body.ThumbnailUrl,
+	})
+	var validationErr *myerrors.ValidationError
+	if errors.As(err, &validationErr) {
+		return api.ArticlesUpsert422JSONResponse{Error: validationErr.Message}, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to upsert article: %w", err)
+	}
+
+	response := api.ArticleMetadata{
+		Slug:         output.Article.Slug,
+		Title:        output.Article.Title,
+		Tags:         output.Article.Tags,
+		Status:       api.ArticleStatus(output.Article.Status),
+		CreatedAt:    output.Article.CreatedAt,
+		UpdatedAt:    output.Article.UpdatedAt,
+		Pv:           float32(output.Article.PV),
+		Source:       output.Article.Source,
+		ThumbnailUrl: output.Article.ThumbnailURL,
+	}
+
+	if output.Created {
+		return api.ArticlesUpsert201JSONResponse(response), nil
+	}
+	return api.ArticlesUpsert200JSONResponse(response), nil
 }

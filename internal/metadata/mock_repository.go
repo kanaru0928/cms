@@ -41,10 +41,10 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 }
 
 // GetArticle mocks base method.
-func (m *MockRepository) GetArticle(ctx context.Context, getArticleDTO *getArticleDTO) (*getArticleOutput, error) {
+func (m *MockRepository) GetArticle(ctx context.Context, getArticleDTO *getArticleDTO) (*GetArticleOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetArticle", ctx, getArticleDTO)
-	ret0, _ := ret[0].(*getArticleOutput)
+	ret0, _ := ret[0].(*GetArticleOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -86,11 +86,12 @@ func (mr *MockRepositoryMockRecorder) ListArticles(ctx, listArticlesDTO any) *go
 }
 
 // PutArticle mocks base method.
-func (m *MockRepository) PutArticle(ctx context.Context, props *putArticleDTO) error {
+func (m *MockRepository) PutArticle(ctx context.Context, props *putArticleDTO) (*PutArticleOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PutArticle", ctx, props)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(*PutArticleOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // PutArticle indicates an expected call of PutArticle.

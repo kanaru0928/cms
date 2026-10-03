@@ -65,19 +65,19 @@ func (r *DynamoDBRepository) GetArticleTags(ctx context.Context, getArticleTagsD
 	return outputItem.Tags, nil
 }
 
-func (r *DynamoDBRepository) PutArticle(ctx context.Context, putArticleDTO *putArticleDTO) error {
+func (r *DynamoDBRepository) PutArticle(ctx context.Context, putArticleDTO *putArticleDTO) (*PutArticleOutput, error) {
 	// 既存のタグを取得
 	getArticleTagsDTO, err := NewGetArticleTagsDTO(GetArticleTagsDTOProps{
 		Slug: putArticleDTO.slug,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create GetArticleTagsDTO: %w", err)
+		return nil, fmt.Errorf("failed to create GetArticleTagsDTO: %w", err)
 	}
 
 	existingTags, err := r.GetArticleTags(ctx, getArticleTagsDTO)
 	var notFoundErr *myerrors.NotFoundError
 	if err != nil && !errors.As(err, &notFoundErr) {
-		return fmt.Errorf("failed to get article tags: %w", err)
+		return nil, fmt.Errorf("failed to get article tags: %w", err)
 	}
 
 	// 孤立するタグアイテムは削除する必要がある
@@ -202,10 +202,10 @@ func (r *DynamoDBRepository) PutArticle(ctx context.Context, putArticleDTO *putA
 		TransactItems: transactoinItems,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to put article: %w", err)
+		return nil, fmt.Errorf("failed to put article: %w", err)
 	}
 
-	return nil
+	return &PutArticleOutput{Created: notFoundErr != nil}, nil
 }
 
 func subtractTags(existingTags, newTags []string) []string {
@@ -290,7 +290,7 @@ func (r *DynamoDBRepository) ListArticles(ctx context.Context, props *listArticl
 	}, nil
 }
 
-func (r *DynamoDBRepository) GetArticle(ctx context.Context, getArticleDTO *getArticleDTO) (*getArticleOutput, error) {
+func (r *DynamoDBRepository) GetArticle(ctx context.Context, getArticleDTO *getArticleDTO) (*GetArticleOutput, error) {
 	key := articlePKMap{
 		articlePKSlug:     &types.AttributeValueMemberS{Value: getArticleDTO.slug},
 		articlePKItemType: &types.AttributeValueMemberS{Value: string(ItemTypeArticle)},
@@ -318,7 +318,7 @@ func (r *DynamoDBRepository) GetArticle(ctx context.Context, getArticleDTO *getA
 		return nil, fmt.Errorf("failed to unmarshal article: %w", err)
 	}
 
-	item := getArticleOutput{
+	item := GetArticleOutput{
 		Slug:         article.Slug,
 		Title:        article.Title,
 		Source:       article.Source,

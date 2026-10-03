@@ -178,6 +178,11 @@ func NewPutArticleDTO(props PutArticleDTOProps) (*putArticleDTO, error) {
 	}, nil
 }
 
+type PutArticleOutput struct {
+	// 記事が新規作成された場合は true、既存の記事が更新された場合は false
+	Created bool
+}
+
 type getArticleTagsDTO struct {
 	slug string
 }
@@ -273,7 +278,7 @@ func NewGetArticleDTO(props GetArticleDTOProps) (*getArticleDTO, error) {
 	}, nil
 }
 
-type getArticleOutput struct {
+type GetArticleOutput struct {
 	Slug         string
 	Title        string
 	Source       string

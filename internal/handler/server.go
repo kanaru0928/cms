@@ -5,6 +5,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/kanaru0928/cms/internal/api"
+	"github.com/kanaru0928/cms/internal/article"
 	"github.com/kanaru0928/cms/internal/auth"
 	"github.com/kanaru0928/cms/internal/content"
 	"github.com/kanaru0928/cms/internal/metadata"
@@ -16,6 +17,7 @@ type server struct {
 	authenticator      auth.Authenticator
 	contentRepository  content.Repository
 	metadataRepository metadata.Repository
+	articleService     *article.Service
 }
 
 type ServerDependencies struct {
@@ -29,6 +31,7 @@ func NewServer(dependencies *ServerDependencies) *server {
 		authenticator:      dependencies.Authenticator,
 		contentRepository:  dependencies.ContentRepository,
 		metadataRepository: dependencies.MetadataRepository,
+		articleService:     article.NewService(dependencies.ContentRepository, dependencies.MetadataRepository),
 	}
 }
 

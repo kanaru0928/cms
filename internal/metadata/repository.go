@@ -6,7 +6,7 @@ import "context"
 
 type Repository interface {
 	GetArticleTags(ctx context.Context, getArticleTagsDTO *getArticleTagsDTO) ([]string, error)
-	PutArticle(ctx context.Context, props *putArticleDTO) error
+	PutArticle(ctx context.Context, props *putArticleDTO) (*PutArticleOutput, error)
 	ListArticles(ctx context.Context, listArticlesDTO *listArticlesDTO) (*ListArticlesOutput, error)
-	GetArticle(ctx context.Context, getArticleDTO *getArticleDTO) (*getArticleOutput, error)
+	GetArticle(ctx context.Context, getArticleDTO *getArticleDTO) (*GetArticleOutput, error)
 }
