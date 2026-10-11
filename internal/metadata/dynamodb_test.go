@@ -1154,6 +1154,136 @@ func TestGetArticle(t *testing.T) {
 	}
 }
 
+func TestDeleteArticle(t *testing.T) {
+	cfg, err := config.LoadDefaultConfig(
+		context.Background(),
+		config.WithRegion("ap-northeast-1"),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("dummy", "dummy", "")),
+	)
+	if err != nil {
+		t.Fatalf("Failed to load AWS config: %v", err)
+	}
+	repo := newDynamoDBRepositoryForTest(&cfg, "articles", "http://localhost:8000")
+
+	tests := []struct {
+		name       string
+		beforeFunc func() error
+		input      *deleteArticleDTO
+		wantErr    error
+		wantOutput []*articleItem
+	}{
+		{
+			name: "記事とタグアイテムを削除し、他の記事は残る",
+			beforeFunc: func() error {
+				if _, err := repo.PutArticle(context.Background(), &putArticleDTO{
+					slug:         "article-1",
+					title:        "Article 1",
+					source:       "www.kanaru.me",
+					contentKey:   "article-1/content.md",
+					status:       StatusPublished,
+					tags:         []string{"tag1", "tag2"},
+					thumbnailURL: "https://example.com/thumbnail1.jpg",
+				}); err != nil {
+					return err
+				}
+				_, err := repo.PutArticle(context.Background(), &putArticleDTO{
+					slug:         "article-2",
+					title:        "Article 2",
+					source:       "www.kanaru.me",
+					contentKey:   "article-2/content.md",
+					status:       StatusPublished,
+					tags:         []string{"tag1"},
+					thumbnailURL: "https://example.com/thumbnail2.jpg",
+				})
+				return err
+			},
+			input: &deleteArticleDTO{
+				slug: "article-1",
+			},
+			wantErr: nil,
+			wantOutput: []*articleItem{
+				{
+					Slug:         "article-2",
+					ItemType:     ItemTypeArticle,
+					Status:       StatusPublished,
+					FilterTag:    tagAll,
+					Title:        "Article 2",
+					Source:       "www.kanaru.me",
+					ContentKey:   "article-2/content.md",
+					Tags:         []string{"tag1"},
+					PV:           0,
+					ThumbnailURL: "https://example.com/thumbnail2.jpg",
+				},
+				{
+					Slug:       "article-2",
+					ItemType:   ItemTypeTag + "#tag1",
+					Status:     StatusPublished,
+					FilterTag:  "tag1",
+					Title:      "Article 2",
+					Source:     "www.kanaru.me",
+					ContentKey: "article-2/content.md",
+					Tags:       []string{"tag1"},
+				},
+			},
+		},
+		{
+			name:       "記事が存在しない場合、NotFound を返す",
+			beforeFunc: nil,
+			input: &deleteArticleDTO{
+				slug: "non-existing-article",
+			},
+			wantErr:    &myerrors.NotFoundError{},
+			wantOutput: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := createTable(context.Background(), repo)
+			if err != nil {
+				t.Fatalf("Failed to create table: %v", err)
+			}
+			defer func() {
+				if err := deleteTable(context.Background(), repo); err != nil {
+					t.Fatalf("Failed to delete table: %v", err)
+				}
+			}()
+
+			if tt.beforeFunc != nil {
+				if err := tt.beforeFunc(); err != nil {
+					t.Fatalf("Failed to run before function: %v", err)
+				}
+			}
+
+			err = repo.DeleteArticle(context.Background(), tt.input)
+			if tt.wantErr != nil {
+				if !myerrors.HasSameTypeAs(err, tt.wantErr) {
+					t.Errorf("DeleteArticle() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("DeleteArticle() error = %v", err)
+			}
+
+			items, err := repo.scanAllForTest(context.Background())
+			if err != nil {
+				t.Fatalf("Failed to scan all items: %v", err)
+			}
+
+			if len(items) != len(tt.wantOutput) {
+				t.Errorf("Expected %d items, but got %d", len(tt.wantOutput), len(items))
+				return
+			}
+			for i, wantItem := range tt.wantOutput {
+				if !compareArticleItems(items[i], wantItem) {
+					t.Errorf("Expected item %d to be %+v, but got %+v", i, wantItem, items[i])
+				}
+			}
+		})
+	}
+}
+
 func compareListArticlesOutputItems(a, b ListArticlesOutputItem) bool {
 	if a.Slug != b.Slug {
 		return false

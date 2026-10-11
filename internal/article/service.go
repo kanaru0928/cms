@@ -102,3 +102,31 @@ func (s *Service) UpsertArticle(ctx context.Context, props UpsertArticleProps) (
 		Article: (*GetArticleOutput)(article),
 	}, nil
 }
+
+func (s *Service) DeleteArticle(ctx context.Context, props DeleteArticleProps) error {
+	// 削除前に全ての入力を検証する
+	deleteArticleDTO, err := metadata.NewDeleteArticleDTO(metadata.DeleteArticleDTOProps{
+		Slug: props.Slug,
+	})
+	if err != nil {
+		return err
+	}
+
+	deleteContentsDTO, err := content.NewDeleteContentsByPrefixDTO(content.DeleteContentsByPrefixDTOProps{
+		Prefix: fmt.Sprintf("articles/%s/", props.Slug),
+	})
+	if err != nil {
+		return err
+	}
+
+	// 本文を先に消すと、削除に失敗した場合に本文のない記事が残るため、メタデータから削除する
+	if err := s.metadataRepository.DeleteArticle(ctx, deleteArticleDTO); err != nil {
+		return fmt.Errorf("failed to delete article: %w", err)
+	}
+
+	if err := s.contentRepository.DeleteContentsByPrefix(ctx, *deleteContentsDTO); err != nil {
+		return fmt.Errorf("failed to delete contents: %w", err)
+	}
+
+	return nil
+}

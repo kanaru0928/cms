@@ -10,6 +10,7 @@ import (
 	"github.com/kanaru0928/cms/internal/auth"
 	"github.com/kanaru0928/cms/internal/content"
 	"github.com/kanaru0928/cms/internal/metadata"
+	"github.com/kanaru0928/cms/internal/myerrors"
 	"github.com/labstack/echo/v5"
 	"github.com/lestrrat-go/jwx/v4/jwt"
 	"go.uber.org/mock/gomock"
@@ -239,6 +240,85 @@ func TestArticlesUpsert(t *testing.T) {
 			t.Fatalf("expected no error, got %v", err)
 		}
 		if err := response.VisitArticlesUpsertResponse(rec); err != nil {
+			t.Fatalf("expected response to be written, got %v", err)
+		}
+
+		if rec.Code != http.StatusUnprocessableEntity {
+			t.Fatalf("expected status code %d, got %d", http.StatusUnprocessableEntity, rec.Code)
+		}
+	})
+}
+
+func TestArticlesDelete(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	e := echo.New()
+	metadataMock := metadata.NewMockRepository(ctrl)
+	contentMock := content.NewMockRepository(ctrl)
+	authenticatorMock := auth.NewMockAuthenticator(ctrl)
+
+	newServer := func() *server {
+		return &server{
+			metadataRepository: metadataMock,
+			contentRepository:  contentMock,
+			authenticator:      authenticatorMock,
+			articleService:     article.NewService(contentMock, metadataMock),
+		}
+	}
+
+	t.Run("記事を削除して 200 が返る", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, "/articles/test-article", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		metadataMock.EXPECT().DeleteArticle(gomock.Any(), gomock.Any()).Return(nil)
+		contentMock.EXPECT().DeleteContentsByPrefix(gomock.Any(), gomock.Any()).Return(nil)
+
+		response, err := newServer().ArticlesDelete(c.Request().Context(), api.ArticlesDeleteRequestObject{Slug: "test-article"})
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if err := response.VisitArticlesDeleteResponse(rec); err != nil {
+			t.Fatalf("expected response to be written, got %v", err)
+		}
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status code %d, got %d", http.StatusOK, rec.Code)
+		}
+	})
+
+	t.Run("記事が存在しない場合は 404 が返る", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, "/articles/test-article", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		metadataMock.EXPECT().DeleteArticle(gomock.Any(), gomock.Any()).Return(&myerrors.NotFoundError{
+			ID:           "test-article",
+			ResourceType: "Article",
+		})
+
+		response, err := newServer().ArticlesDelete(c.Request().Context(), api.ArticlesDeleteRequestObject{Slug: "test-article"})
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if err := response.VisitArticlesDeleteResponse(rec); err != nil {
+			t.Fatalf("expected response to be written, got %v", err)
+		}
+
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("expected status code %d, got %d", http.StatusNotFound, rec.Code)
+		}
+	})
+
+	t.Run("入力が不正な場合は削除せずに 422 が返る", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, "/articles/", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		response, err := newServer().ArticlesDelete(c.Request().Context(), api.ArticlesDeleteRequestObject{Slug: ""})
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if err := response.VisitArticlesDeleteResponse(rec); err != nil {
 			t.Fatalf("expected response to be written, got %v", err)
 		}
 

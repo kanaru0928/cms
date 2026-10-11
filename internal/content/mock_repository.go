@@ -40,6 +40,20 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 	return m.recorder
 }
 
+// DeleteContentsByPrefix mocks base method.
+func (m *MockRepository) DeleteContentsByPrefix(ctx context.Context, props deleteContentsByPrefixDTO) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteContentsByPrefix", ctx, props)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteContentsByPrefix indicates an expected call of DeleteContentsByPrefix.
+func (mr *MockRepositoryMockRecorder) DeleteContentsByPrefix(ctx, props any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteContentsByPrefix", reflect.TypeOf((*MockRepository)(nil).DeleteContentsByPrefix), ctx, props)
+}
+
 // GetTextContent mocks base method.
 func (m *MockRepository) GetTextContent(ctx context.Context, key string) (ContentType, error) {
 	m.ctrl.T.Helper()

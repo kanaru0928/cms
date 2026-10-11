@@ -25,3 +25,7 @@ type UpsertArticleOutput struct {
 	Created bool
 	Article *GetArticleOutput
 }
+
+type DeleteArticleProps struct {
+	Slug string
+}

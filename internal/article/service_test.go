@@ -259,3 +259,65 @@ func TestUpsertArticle(t *testing.T) {
 		}
 	})
 }
+
+func TestDeleteArticle(t *testing.T) {
+	t.Run("メタデータを削除してから本文を全て削除する", func(t *testing.T) {
+		s, contentMock, metadataMock := newServiceForTest(t)
+
+		wantDeleteArticleDTO, err := metadata.NewDeleteArticleDTO(metadata.DeleteArticleDTOProps{Slug: "test-article"})
+		if err != nil {
+			t.Fatalf("failed to create DTO: %v", err)
+		}
+		wantDeleteContentsDTO, err := content.NewDeleteContentsByPrefixDTO(content.DeleteContentsByPrefixDTOProps{
+			Prefix: "articles/test-article/",
+		})
+		if err != nil {
+			t.Fatalf("failed to create DTO: %v", err)
+		}
+
+		gomock.InOrder(
+			metadataMock.EXPECT().DeleteArticle(gomock.Any(), gomock.Eq(wantDeleteArticleDTO)).Return(nil),
+			contentMock.EXPECT().DeleteContentsByPrefix(gomock.Any(), gomock.Eq(*wantDeleteContentsDTO)).Return(nil),
+		)
+
+		if err := s.DeleteArticle(context.Background(), DeleteArticleProps{Slug: "test-article"}); err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+	})
+
+	t.Run("Slug が空の場合は削除せずに ValidationError を返す", func(t *testing.T) {
+		s, _, _ := newServiceForTest(t)
+
+		err := s.DeleteArticle(context.Background(), DeleteArticleProps{Slug: ""})
+		if !myerrors.HasSameTypeAs(err, &myerrors.ValidationError{}) {
+			t.Fatalf("expected ValidationError, got %v", err)
+		}
+	})
+
+	t.Run("記事が存在しない場合は本文を削除せずに NotFoundError を返す", func(t *testing.T) {
+		s, _, metadataMock := newServiceForTest(t)
+
+		metadataMock.EXPECT().DeleteArticle(gomock.Any(), gomock.Any()).Return(&myerrors.NotFoundError{
+			ID:           "test-article",
+			ResourceType: "Article",
+		})
+
+		err := s.DeleteArticle(context.Background(), DeleteArticleProps{Slug: "test-article"})
+		if !myerrors.HasSameTypeAs(err, &myerrors.NotFoundError{}) {
+			t.Fatalf("expected NotFoundError, got %v", err)
+		}
+	})
+
+	t.Run("本文の削除に失敗した場合はエラーを返す", func(t *testing.T) {
+		s, contentMock, metadataMock := newServiceForTest(t)
+
+		repoErr := errors.New("content error")
+		metadataMock.EXPECT().DeleteArticle(gomock.Any(), gomock.Any()).Return(nil)
+		contentMock.EXPECT().DeleteContentsByPrefix(gomock.Any(), gomock.Any()).Return(repoErr)
+
+		err := s.DeleteArticle(context.Background(), DeleteArticleProps{Slug: "test-article"})
+		if !errors.Is(err, repoErr) {
+			t.Fatalf("expected %v, got %v", repoErr, err)
+		}
+	})
+}

@@ -290,3 +290,22 @@ type GetArticleOutput struct {
 	PV           int
 	ThumbnailURL string
 }
+
+type deleteArticleDTO struct {
+	slug string
+}
+
+type DeleteArticleDTOProps struct {
+	Slug string
+}
+
+func NewDeleteArticleDTO(props DeleteArticleDTOProps) (*deleteArticleDTO, error) {
+	slugLength := len(props.Slug)
+	if slugLength < slugMinLength || slugLength > slugMaxLength {
+		return nil, &myerrors.ValidationError{Message: fmt.Sprintf("slug must be between %d and %d characters", slugMinLength, slugMaxLength)}
+	}
+
+	return &deleteArticleDTO{
+		slug: props.Slug,
+	}, nil
+}

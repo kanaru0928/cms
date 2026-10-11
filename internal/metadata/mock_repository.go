@@ -40,6 +40,20 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 	return m.recorder
 }
 
+// DeleteArticle mocks base method.
+func (m *MockRepository) DeleteArticle(ctx context.Context, deleteArticleDTO *deleteArticleDTO) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteArticle", ctx, deleteArticleDTO)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteArticle indicates an expected call of DeleteArticle.
+func (mr *MockRepositoryMockRecorder) DeleteArticle(ctx, deleteArticleDTO any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteArticle", reflect.TypeOf((*MockRepository)(nil).DeleteArticle), ctx, deleteArticleDTO)
+}
+
 // GetArticle mocks base method.
 func (m *MockRepository) GetArticle(ctx context.Context, getArticleDTO *getArticleDTO) (*GetArticleOutput, error) {
 	m.ctrl.T.Helper()

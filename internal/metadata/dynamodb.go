@@ -334,6 +334,49 @@ func (r *DynamoDBRepository) GetArticle(ctx context.Context, getArticleDTO *getA
 	return &item, nil
 }
 
+func (r *DynamoDBRepository) DeleteArticle(ctx context.Context, deleteArticleDTO *deleteArticleDTO) error {
+	// タグアイテムのキーを組み立てるため、既存のタグを取得する
+	getArticleTagsDTO, err := NewGetArticleTagsDTO(GetArticleTagsDTOProps{
+		Slug: deleteArticleDTO.slug,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create GetArticleTagsDTO: %w", err)
+	}
+
+	tags, err := r.GetArticleTags(ctx, getArticleTagsDTO)
+	if err != nil {
+		return fmt.Errorf("failed to get article tags: %w", err)
+	}
+
+	itemTypes := []string{string(ItemTypeArticle)}
+	for _, tag := range tags {
+		itemTypes = append(itemTypes, fmt.Sprintf("%s#%s", ItemTypeTag, tag))
+	}
+
+	transactionItems := make([]types.TransactWriteItem, len(itemTypes))
+	for i, itemType := range itemTypes {
+		pk := articlePKMap{
+			articlePKItemType: &types.AttributeValueMemberS{Value: itemType},
+			articlePKSlug:     &types.AttributeValueMemberS{Value: deleteArticleDTO.slug},
+		}
+		transactionItems[i] = types.TransactWriteItem{
+			Delete: &types.Delete{
+				TableName: aws.String(r.tableName),
+				Key:       pk.ToStringMap(),
+			},
+		}
+	}
+
+	_, err = r.client.TransactWriteItems(ctx, &dynamodb.TransactWriteItemsInput{
+		TransactItems: transactionItems,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete article: %w", err)
+	}
+
+	return nil
+}
+
 // テスト用の関数であるため、実装での使用は不可
 func (r *DynamoDBRepository) scanAllForTest(ctx context.Context) ([]*articleItem, error) {
 	var articles []*articleItem

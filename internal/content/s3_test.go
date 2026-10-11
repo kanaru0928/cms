@@ -125,6 +125,84 @@ func TestGetTextContent(t *testing.T) {
 	}
 }
 
+func TestDeleteContentsByPrefix(t *testing.T) {
+	cfg, err := config.LoadDefaultConfig(
+		context.Background(),
+		config.WithRegion("garage"),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
+			"dummy-access-key",
+			"dummy-secret-key",
+			"",
+		)),
+	)
+
+	if err != nil {
+		t.Fatalf("failed to load AWS config: %v", err)
+	}
+
+	repo := newS3RepositoryForTest(&cfg, bucketName, "delete-test-prefix/", "http://localhost:3900", "garage")
+
+	tests := []struct {
+		name         string
+		beforeFunc   func() error
+		input        deleteContentsByPrefixDTO
+		wantErr      bool
+		wantContents map[string]ContentType
+	}{
+		{
+			name: "prefix に一致するコンテンツだけを削除できる",
+			beforeFunc: func() error {
+				for _, key := range []string{"articles/a/1.md", "articles/a/2.md", "articles/ab/1.md"} {
+					if err := repo.PutTextContent(context.Background(), putTextContentDTO{
+						key:     key,
+						content: "content",
+					}); err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+			input: deleteContentsByPrefixDTO{
+				prefix: "articles/a/",
+			},
+			wantErr: false,
+			wantContents: map[string]ContentType{
+				"delete-test-prefix/articles/ab/1.md": "content",
+			},
+		},
+		{
+			name:       "一致するコンテンツがなくてもエラーにならない",
+			beforeFunc: func() error { return nil },
+			input: deleteContentsByPrefixDTO{
+				prefix: "articles/non-existent/",
+			},
+			wantErr: false,
+			wantContents: map[string]ContentType{
+				"delete-test-prefix/articles/ab/1.md": "content",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.beforeFunc(); err != nil {
+				t.Fatalf("beforeFunc() error = %v", err)
+			}
+			err := repo.DeleteContentsByPrefix(context.Background(), tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("DeleteContentsByPrefix() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			contents, err := repo.getAllContentsForTest(context.Background())
+			if err != nil {
+				t.Fatalf("failed to get all contents: %v", err)
+			}
+			if !compareTextContents(tt.wantContents, contents) {
+				t.Errorf("DeleteContentsByPrefix() got = %v, want %v", contents, tt.wantContents)
+			}
+		})
+	}
+}
+
 func compareTextContents(a map[string]ContentType, b map[string][]byte) bool {
 	if a == nil && b == nil {
 		return true

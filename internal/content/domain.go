@@ -56,3 +56,23 @@ func NewGetTextContentDTO(props GetTextContentDTOProps) (*getTextContentDTO, err
 		key: props.Key,
 	}, nil
 }
+
+type deleteContentsByPrefixDTO struct {
+	prefix string
+}
+
+type DeleteContentsByPrefixDTOProps struct {
+	Prefix string
+}
+
+func NewDeleteContentsByPrefixDTO(props DeleteContentsByPrefixDTOProps) (*deleteContentsByPrefixDTO, error) {
+	// 空の prefix はリポジトリ配下の全てのコンテンツに一致するため許可しない
+	prefixLength := len(props.Prefix)
+	if prefixLength < keyMinLength || prefixLength > keyMaxLength {
+		return nil, &myerrors.ValidationError{Message: "prefix must be between 1 and 200 characters"}
+	}
+
+	return &deleteContentsByPrefixDTO{
+		prefix: props.Prefix,
+	}, nil
+}

@@ -9,4 +9,5 @@ type Repository interface {
 	PutArticle(ctx context.Context, props *putArticleDTO) (*PutArticleOutput, error)
 	ListArticles(ctx context.Context, listArticlesDTO *listArticlesDTO) (*ListArticlesOutput, error)
 	GetArticle(ctx context.Context, getArticleDTO *getArticleDTO) (*GetArticleOutput, error)
+	DeleteArticle(ctx context.Context, deleteArticleDTO *deleteArticleDTO) error
 }

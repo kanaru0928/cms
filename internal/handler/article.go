@@ -13,7 +13,22 @@ import (
 
 // ArticlesDelete implements [api.StrictServerInterface].
 func (s *server) ArticlesDelete(ctx context.Context, request api.ArticlesDeleteRequestObject) (api.ArticlesDeleteResponseObject, error) {
-	panic("unimplemented")
+	err := s.articleService.DeleteArticle(ctx, article.DeleteArticleProps{
+		Slug: request.Slug,
+	})
+	var validationErr *myerrors.ValidationError
+	if errors.As(err, &validationErr) {
+		return api.ArticlesDelete422JSONResponse{Error: validationErr.Message}, nil
+	}
+	var notFoundErr *myerrors.NotFoundError
+	if errors.As(err, &notFoundErr) {
+		return api.ArticlesDelete404JSONResponse{Error: notFoundErr.Error()}, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete article: %w", err)
+	}
+
+	return api.ArticlesDelete200JSONResponse{Message: "article deleted"}, nil
 }
 
 // ArticlesList implements [api.StrictServerInterface].
