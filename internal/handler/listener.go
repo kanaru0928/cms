@@ -46,6 +46,10 @@ func DefineListener(port int) {
 	})
 
 	mw, err := server.CreateMiddleware()
+	if err != nil {
+		e.Logger.Error("failed to create middleware", "error", err)
+		os.Exit(1)
+	}
 
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
