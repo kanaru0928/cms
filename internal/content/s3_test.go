@@ -61,6 +61,17 @@ func TestPutTextContent(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("アップロードに失敗するとエラー", func(t *testing.T) {
+		repo := newS3RepositoryForTest(&cfg, "non-existent-bucket", "test-prefix/", "http://localhost:3900", "garage")
+		err := repo.PutTextContent(context.Background(), putTextContentDTO{
+			key:     "test-key",
+			content: "This is a test content.",
+		})
+		if err == nil {
+			t.Errorf("PutTextContent() error = nil, wantErr true")
+		}
+	})
 }
 
 func TestGetTextContent(t *testing.T) {

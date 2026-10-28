@@ -45,11 +45,14 @@ func (r *S3Repository) getFullKey(key string) string {
 }
 
 func (r *S3Repository) PutTextContent(ctx context.Context, props putTextContentDTO) error {
-	r.client.PutObject(ctx, &s3.PutObjectInput{
+	_, err := r.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(r.bucketName),
 		Key:    aws.String(r.getFullKey(props.key)),
 		Body:   strings.NewReader(string(props.content)),
 	})
+	if err != nil {
+		return fmt.Errorf("failed to put content: %w", err)
+	}
 	return nil
 }
 
