@@ -167,6 +167,11 @@ func NewPutArticleDTO(props PutArticleDTOProps) (*putArticleDTO, error) {
 		}
 	}
 
+	thumbnailURLLength := len(props.ThumbnailURL)
+	if thumbnailURLLength < thumbnailURLMinLength || thumbnailURLLength > thumbnailURLMaxLength {
+		return nil, &myerrors.ValidationError{Message: fmt.Sprintf("thumbnailURL must be between %d and %d characters", thumbnailURLMinLength, thumbnailURLMaxLength)}
+	}
+
 	return &putArticleDTO{
 		slug:         props.Slug,
 		title:        props.Title,
@@ -176,6 +181,11 @@ func NewPutArticleDTO(props PutArticleDTOProps) (*putArticleDTO, error) {
 		tags:         props.Tags,
 		thumbnailURL: props.ThumbnailURL,
 	}, nil
+}
+
+type PutArticleOutput struct {
+	// 記事が新規作成された場合は true、既存の記事が更新された場合は false
+	Created bool
 }
 
 type getArticleTagsDTO struct {
@@ -236,7 +246,7 @@ func NewListArticlesDTO(props ListArticlesDTOProps) (*listArticlesDTO, error) {
 	}, nil
 }
 
-type listArticlesOutputItem struct {
+type ListArticlesOutputItem struct {
 	Slug         string
 	Status       StatusType
 	Title        string
@@ -249,8 +259,8 @@ type listArticlesOutputItem struct {
 	ThumbnailURL string
 }
 
-type listArticlesOutput struct {
-	Items []listArticlesOutputItem
+type ListArticlesOutput struct {
+	Items []ListArticlesOutputItem
 	lastEvaluatedKey map[articlePK]types.AttributeValue
 }
 
@@ -273,7 +283,7 @@ func NewGetArticleDTO(props GetArticleDTOProps) (*getArticleDTO, error) {
 	}, nil
 }
 
-type getArticleOutput struct {
+type GetArticleOutput struct {
 	Slug         string
 	Title        string
 	Source       string
@@ -284,4 +294,23 @@ type getArticleOutput struct {
 	CreatedAt    string
 	PV           int
 	ThumbnailURL string
+}
+
+type deleteArticleDTO struct {
+	slug string
+}
+
+type DeleteArticleDTOProps struct {
+	Slug string
+}
+
+func NewDeleteArticleDTO(props DeleteArticleDTOProps) (*deleteArticleDTO, error) {
+	slugLength := len(props.Slug)
+	if slugLength < slugMinLength || slugLength > slugMaxLength {
+		return nil, &myerrors.ValidationError{Message: fmt.Sprintf("slug must be between %d and %d characters", slugMinLength, slugMaxLength)}
+	}
+
+	return &deleteArticleDTO{
+		slug: props.Slug,
+	}, nil
 }

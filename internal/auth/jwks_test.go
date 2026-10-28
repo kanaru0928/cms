@@ -87,7 +87,7 @@ func TestCreateAuthenticationFunc(t *testing.T) {
 		name          string
 		authHeader    string
 		setAuthHeader bool
-		fetcher       JWKSFetcher
+		fetcher       Fetcher
 		wantErr       bool
 		wantToken     bool
 	}{
@@ -141,7 +141,7 @@ func TestCreateAuthenticationFunc(t *testing.T) {
 				},
 			}
 
-			authenticator := &cognitoAuthenticator{fetcher: tt.fetcher}
+			authenticator := &jwksAuthenticator{fetcher: tt.fetcher}
 			authFn := authenticator.CreateAuthenticationFunc()
 
 			err := authFn(context.Background(), input)
@@ -151,7 +151,7 @@ func TestCreateAuthenticationFunc(t *testing.T) {
 			}
 
 			if tt.wantToken {
-				if input.RequestValidationInput.Request.Context().Value("token") == nil {
+				if _, ok := authenticator.GetTokenFromContext(input.RequestValidationInput.Request.Context()); !ok {
 					t.Errorf("expected token to be set in request context, but it was not")
 				}
 			}

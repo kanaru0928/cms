@@ -1,6 +1,9 @@
 package metadata
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestNewPutArticleDTO(t *testing.T) {
 	tests := []struct {
@@ -174,6 +177,32 @@ func TestNewPutArticleDTO(t *testing.T) {
 				Status:       "invalid-status",
 				Tags:         []string{"tag1", "tag2"},
 				ThumbnailURL: "http://example.com/thumbnail.jpg",
+			},
+			wantErr: true,
+		},
+		{
+			name: "ThumbnailURL が空ならエラー",
+			input: PutArticleDTOProps{
+				Slug:         "valid-slug",
+				Title:        "Valid Title",
+				ContentKey:   "valid-content-key",
+				Source:       "Valid Source",
+				Status:       string(StatusPublished),
+				Tags:         []string{"tag1", "tag2"},
+				ThumbnailURL: "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "ThumbnailURL が 2000 文字を超えるとエラー",
+			input: PutArticleDTOProps{
+				Slug:         "valid-slug",
+				Title:        "Valid Title",
+				ContentKey:   "valid-content-key",
+				Source:       "Valid Source",
+				Status:       string(StatusPublished),
+				Tags:         []string{"tag1", "tag2"},
+				ThumbnailURL: "http://example.com/" + strings.Repeat("a", 2000),
 			},
 			wantErr: true,
 		},

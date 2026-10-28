@@ -43,6 +43,8 @@ func createTable(ctx context.Context, repository *DynamoDBRepository) error {
 						string(articleKeySource),
 						string(articleKeyContentKey),
 						string(articleKeyCreatedAt),
+						string(articleKeyPV),
+						string(articleKeyThumbnailURL),
 					},
 				},
 			},
@@ -71,11 +73,12 @@ func TestPutArticle(t *testing.T) {
 	repo := newDynamoDBRepositoryForTest(&cfg, "articles", "http://localhost:8000")
 
 	tests := []struct {
-		name       string
-		beforeFunc func() error
-		input      *putArticleDTO
-		wantErr    bool
-		wantOutput []*articleItem
+		name        string
+		beforeFunc  func() error
+		input       *putArticleDTO
+		wantErr     bool
+		wantCreated bool
+		wantOutput  []*articleItem
 	}{
 		{
 			name: "単一タグの公開記事の登録に成功",
@@ -88,7 +91,8 @@ func TestPutArticle(t *testing.T) {
 				tags:         []string{"tag1"},
 				thumbnailURL: "https://example.com/thumbnail.jpg",
 			},
-			wantErr: false,
+			wantErr:     false,
+			wantCreated: true,
 			wantOutput: []*articleItem{
 				{
 					Slug:         "test-article",
@@ -125,7 +129,8 @@ func TestPutArticle(t *testing.T) {
 				tags:         []string{"tag1", "tag2", "tag3"},
 				thumbnailURL: "https://example.com/thumbnail.jpg",
 			},
-			wantErr: false,
+			wantErr:     false,
+			wantCreated: true,
 			wantOutput: []*articleItem{
 				{
 					Slug:         "test-article-multiple-tags",
@@ -174,7 +179,7 @@ func TestPutArticle(t *testing.T) {
 		{
 			name: "記事の追加登録に成功",
 			beforeFunc: func() error {
-				return repo.PutArticle(context.Background(), &putArticleDTO{
+				_, err := repo.PutArticle(context.Background(), &putArticleDTO{
 					slug:         "test-article",
 					title:        "Test Article",
 					source:       "www.kanaru.me",
@@ -183,6 +188,7 @@ func TestPutArticle(t *testing.T) {
 					tags:         []string{"tag1", "tag2"},
 					thumbnailURL: "https://example.com/thumbnail1.jpg",
 				})
+				return err
 			},
 			input: &putArticleDTO{
 				slug:         "test-article-additional",
@@ -193,7 +199,8 @@ func TestPutArticle(t *testing.T) {
 				tags:         []string{"tag1", "tag3"},
 				thumbnailURL: "https://example.com/thumbnail2.jpg",
 			},
-			wantErr: false,
+			wantErr:     false,
+			wantCreated: true,
 			wantOutput: []*articleItem{
 				{
 					Slug:         "test-article-additional",
@@ -264,7 +271,7 @@ func TestPutArticle(t *testing.T) {
 		{
 			name: "タグを変更しない記事の更新に成功",
 			beforeFunc: func() error {
-				return repo.PutArticle(context.Background(), &putArticleDTO{
+				_, err := repo.PutArticle(context.Background(), &putArticleDTO{
 					slug:         "test-article",
 					title:        "Test Article",
 					source:       "www.kanaru.me",
@@ -273,6 +280,7 @@ func TestPutArticle(t *testing.T) {
 					tags:         []string{"tag1", "tag2"},
 					thumbnailURL: "https://example.com/thumbnail.jpg",
 				})
+				return err
 			},
 			input: &putArticleDTO{
 				slug:         "test-article",
@@ -322,7 +330,7 @@ func TestPutArticle(t *testing.T) {
 		{
 			name: "タグを追加する記事の更新に成功",
 			beforeFunc: func() error {
-				return repo.PutArticle(context.Background(), &putArticleDTO{
+				_, err := repo.PutArticle(context.Background(), &putArticleDTO{
 					slug:         "test-article",
 					title:        "Test Article",
 					source:       "www.kanaru.me",
@@ -331,6 +339,7 @@ func TestPutArticle(t *testing.T) {
 					tags:         []string{"tag1"},
 					thumbnailURL: "https://example.com/thumbnail.jpg",
 				})
+				return err
 			},
 			input: &putArticleDTO{
 				slug:         "test-article",
@@ -380,7 +389,7 @@ func TestPutArticle(t *testing.T) {
 		{
 			name: "タグを削除する記事の更新に成功",
 			beforeFunc: func() error {
-				return repo.PutArticle(context.Background(), &putArticleDTO{
+				_, err := repo.PutArticle(context.Background(), &putArticleDTO{
 					slug:         "test-article",
 					title:        "Test Article",
 					source:       "www.kanaru.me",
@@ -389,6 +398,7 @@ func TestPutArticle(t *testing.T) {
 					tags:         []string{"tag1", "tag2"},
 					thumbnailURL: "https://example.com/thumbnail.jpg",
 				})
+				return err
 			},
 			input: &putArticleDTO{
 				slug:         "test-article",
@@ -469,10 +479,14 @@ func TestPutArticle(t *testing.T) {
 				}
 			}
 
-			err = repo.PutArticle(context.Background(), tt.input)
+			output, err := repo.PutArticle(context.Background(), tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("PutArticle() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			}
+
+			if output != nil && output.Created != tt.wantCreated {
+				t.Errorf("PutArticle() created = %v, wantCreated %v", output.Created, tt.wantCreated)
 			}
 
 			items, err := repo.scanAllForTest(context.Background())
@@ -520,7 +534,7 @@ func TestGetArticleTags(t *testing.T) {
 		{
 			name: "記事が存在する場合、タグを取得できる",
 			beforeFunc: func() error {
-				return repo.PutArticle(context.Background(), &putArticleDTO{
+				_, err := repo.PutArticle(context.Background(), &putArticleDTO{
 					slug:         "existing-article",
 					title:        "Existing Article",
 					source:       "www.kanaru.me",
@@ -529,6 +543,7 @@ func TestGetArticleTags(t *testing.T) {
 					tags:         []string{"tag1", "tag2"},
 					thumbnailURL: "https://example.com/thumbnail.jpg",
 				})
+				return err
 			},
 			input: &getArticleTagsDTO{
 				slug: "existing-article",
@@ -601,7 +616,7 @@ func TestListArticles(t *testing.T) {
 		beforeFunc func() error
 		input      *listArticlesDTO
 		wantErr    bool
-		want       []listArticlesOutputItem
+		want       []ListArticlesOutputItem
 	}{
 		{
 			name: "複数記事が存在する場合、全ての記事を取得できる",
@@ -628,7 +643,7 @@ func TestListArticles(t *testing.T) {
 				}
 
 				for _, article := range articles {
-					if err := repo.PutArticle(context.Background(), &article); err != nil {
+					if _, err := repo.PutArticle(context.Background(), &article); err != nil {
 						return err
 					}
 				}
@@ -641,7 +656,7 @@ func TestListArticles(t *testing.T) {
 				order:  SortOrderDesc,
 			},
 			wantErr: false,
-			want: []listArticlesOutputItem{
+			want: []ListArticlesOutputItem{
 				{
 					Slug:         "article-1",
 					Status:       StatusPublished,
@@ -698,7 +713,7 @@ func TestListArticles(t *testing.T) {
 				}
 
 				for _, article := range articles {
-					if err := repo.PutArticle(context.Background(), &article); err != nil {
+					if _, err := repo.PutArticle(context.Background(), &article); err != nil {
 						return err
 					}
 				}
@@ -708,10 +723,10 @@ func TestListArticles(t *testing.T) {
 				status: StatusPublished,
 				tag:    "tag2",
 				limit:  10,
-				order: SortOrderDesc,
+				order:  SortOrderDesc,
 			},
 			wantErr: false,
-			want: []listArticlesOutputItem{
+			want: []ListArticlesOutputItem{
 				{
 					Slug:         "article-1",
 					Status:       StatusPublished,
@@ -744,7 +759,7 @@ func TestListArticles(t *testing.T) {
 				order:  SortOrderDesc,
 			},
 			wantErr: false,
-			want:    []listArticlesOutputItem{},
+			want:    []ListArticlesOutputItem{},
 		},
 		{
 			name: "公開の記事のみを取得できる",
@@ -780,7 +795,7 @@ func TestListArticles(t *testing.T) {
 				}
 
 				for _, article := range articles {
-					if err := repo.PutArticle(context.Background(), &article); err != nil {
+					if _, err := repo.PutArticle(context.Background(), &article); err != nil {
 						return err
 					}
 				}
@@ -793,7 +808,7 @@ func TestListArticles(t *testing.T) {
 				order:  SortOrderDesc,
 			},
 			wantErr: false,
-			want: []listArticlesOutputItem{
+			want: []ListArticlesOutputItem{
 				{
 					Slug:         "article-1",
 					Status:       StatusPublished,
@@ -850,7 +865,7 @@ func TestListArticles(t *testing.T) {
 				}
 
 				for _, article := range articles {
-					if err := repo.PutArticle(context.Background(), &article); err != nil {
+					if _, err := repo.PutArticle(context.Background(), &article); err != nil {
 						return err
 					}
 				}
@@ -863,7 +878,7 @@ func TestListArticles(t *testing.T) {
 				order:  SortOrderDesc,
 			},
 			wantErr: false,
-			want: []listArticlesOutputItem{
+			want: []ListArticlesOutputItem{
 				{
 					Slug:         "article-2",
 					Status:       StatusUnpublished,
@@ -911,7 +926,7 @@ func TestListArticles(t *testing.T) {
 				}
 
 				for _, article := range articles {
-					if err := repo.PutArticle(context.Background(), &article); err != nil {
+					if _, err := repo.PutArticle(context.Background(), &article); err != nil {
 						return err
 					}
 
@@ -926,7 +941,7 @@ func TestListArticles(t *testing.T) {
 				order:  SortOrderAsc,
 			},
 			wantErr: false,
-			want: []listArticlesOutputItem{
+			want: []ListArticlesOutputItem{
 				{
 					Slug:         "article-1",
 					Status:       StatusPublished,
@@ -974,7 +989,7 @@ func TestListArticles(t *testing.T) {
 				}
 
 				for _, article := range articles {
-					if err := repo.PutArticle(context.Background(), &article); err != nil {
+					if _, err := repo.PutArticle(context.Background(), &article); err != nil {
 						return err
 					}
 
@@ -989,7 +1004,7 @@ func TestListArticles(t *testing.T) {
 				order:  SortOrderDesc,
 			},
 			wantErr: false,
-			want: []listArticlesOutputItem{
+			want: []ListArticlesOutputItem{
 				{
 					Slug:         "article-2",
 					Status:       StatusPublished,
@@ -1032,7 +1047,7 @@ func TestListArticles(t *testing.T) {
 				}
 			}
 
-			got, err := repo.ListArticles(context.Background(), *tt.input)
+			got, err := repo.ListArticles(context.Background(), tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ListArticles() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1066,12 +1081,12 @@ func TestGetArticle(t *testing.T) {
 		beforeFunc func() error
 		input      *getArticleDTO
 		wantErr    error
-		want       *getArticleOutput
+		want       *GetArticleOutput
 	}{
 		{
 			name: "記事が存在する場合、記事を取得できる",
 			beforeFunc: func() error {
-				return repo.PutArticle(context.Background(), &putArticleDTO{
+				_, err := repo.PutArticle(context.Background(), &putArticleDTO{
 					slug:         "article-1",
 					status:       StatusPublished,
 					title:        "Article 1",
@@ -1080,12 +1095,13 @@ func TestGetArticle(t *testing.T) {
 					tags:         []string{"tag1", "tag2"},
 					thumbnailURL: "https://example.com/thumbnail1.jpg",
 				})
+				return err
 			},
 			input: &getArticleDTO{
 				slug: "article-1",
 			},
 			wantErr: nil,
-			want: &getArticleOutput{
+			want: &GetArticleOutput{
 				Slug:         "article-1",
 				Status:       StatusPublished,
 				Title:        "Article 1",
@@ -1140,7 +1156,137 @@ func TestGetArticle(t *testing.T) {
 	}
 }
 
-func compareListArticlesOutputItems(a, b listArticlesOutputItem) bool {
+func TestDeleteArticle(t *testing.T) {
+	cfg, err := config.LoadDefaultConfig(
+		context.Background(),
+		config.WithRegion("ap-northeast-1"),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("dummy", "dummy", "")),
+	)
+	if err != nil {
+		t.Fatalf("Failed to load AWS config: %v", err)
+	}
+	repo := newDynamoDBRepositoryForTest(&cfg, "articles", "http://localhost:8000")
+
+	tests := []struct {
+		name       string
+		beforeFunc func() error
+		input      *deleteArticleDTO
+		wantErr    error
+		wantOutput []*articleItem
+	}{
+		{
+			name: "記事とタグアイテムを削除し、他の記事は残る",
+			beforeFunc: func() error {
+				if _, err := repo.PutArticle(context.Background(), &putArticleDTO{
+					slug:         "article-1",
+					title:        "Article 1",
+					source:       "www.kanaru.me",
+					contentKey:   "article-1/content.md",
+					status:       StatusPublished,
+					tags:         []string{"tag1", "tag2"},
+					thumbnailURL: "https://example.com/thumbnail1.jpg",
+				}); err != nil {
+					return err
+				}
+				_, err := repo.PutArticle(context.Background(), &putArticleDTO{
+					slug:         "article-2",
+					title:        "Article 2",
+					source:       "www.kanaru.me",
+					contentKey:   "article-2/content.md",
+					status:       StatusPublished,
+					tags:         []string{"tag1"},
+					thumbnailURL: "https://example.com/thumbnail2.jpg",
+				})
+				return err
+			},
+			input: &deleteArticleDTO{
+				slug: "article-1",
+			},
+			wantErr: nil,
+			wantOutput: []*articleItem{
+				{
+					Slug:         "article-2",
+					ItemType:     ItemTypeArticle,
+					Status:       StatusPublished,
+					FilterTag:    tagAll,
+					Title:        "Article 2",
+					Source:       "www.kanaru.me",
+					ContentKey:   "article-2/content.md",
+					Tags:         []string{"tag1"},
+					PV:           0,
+					ThumbnailURL: "https://example.com/thumbnail2.jpg",
+				},
+				{
+					Slug:       "article-2",
+					ItemType:   ItemTypeTag + "#tag1",
+					Status:     StatusPublished,
+					FilterTag:  "tag1",
+					Title:      "Article 2",
+					Source:     "www.kanaru.me",
+					ContentKey: "article-2/content.md",
+					Tags:       []string{"tag1"},
+				},
+			},
+		},
+		{
+			name:       "記事が存在しない場合、NotFound を返す",
+			beforeFunc: nil,
+			input: &deleteArticleDTO{
+				slug: "non-existing-article",
+			},
+			wantErr:    &myerrors.NotFoundError{},
+			wantOutput: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := createTable(context.Background(), repo)
+			if err != nil {
+				t.Fatalf("Failed to create table: %v", err)
+			}
+			defer func() {
+				if err := deleteTable(context.Background(), repo); err != nil {
+					t.Fatalf("Failed to delete table: %v", err)
+				}
+			}()
+
+			if tt.beforeFunc != nil {
+				if err := tt.beforeFunc(); err != nil {
+					t.Fatalf("Failed to run before function: %v", err)
+				}
+			}
+
+			err = repo.DeleteArticle(context.Background(), tt.input)
+			if tt.wantErr != nil {
+				if !myerrors.HasSameTypeAs(err, tt.wantErr) {
+					t.Errorf("DeleteArticle() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("DeleteArticle() error = %v", err)
+			}
+
+			items, err := repo.scanAllForTest(context.Background())
+			if err != nil {
+				t.Fatalf("Failed to scan all items: %v", err)
+			}
+
+			if len(items) != len(tt.wantOutput) {
+				t.Errorf("Expected %d items, but got %d", len(tt.wantOutput), len(items))
+				return
+			}
+			for i, wantItem := range tt.wantOutput {
+				if !compareArticleItems(items[i], wantItem) {
+					t.Errorf("Expected item %d to be %+v, but got %+v", i, wantItem, items[i])
+				}
+			}
+		})
+	}
+}
+
+func compareListArticlesOutputItems(a, b ListArticlesOutputItem) bool {
 	if a.Slug != b.Slug {
 		return false
 	}
@@ -1167,10 +1313,13 @@ func compareListArticlesOutputItems(a, b listArticlesOutputItem) bool {
 	if a.PV != b.PV {
 		return false
 	}
+	if a.ThumbnailURL != b.ThumbnailURL {
+		return false
+	}
 	return true
 }
 
-func compareGetArticleOutput(a, b *getArticleOutput) bool {
+func compareGetArticleOutput(a, b *GetArticleOutput) bool {
 	if a == nil && b == nil {
 		return true
 	}

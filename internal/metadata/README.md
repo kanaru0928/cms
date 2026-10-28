@@ -56,10 +56,11 @@ DynamoDB を使用する。以下の 2 種類のアイテムを 1 テーブル�
 | `updated_at`  | S  | updatedAt を ISO8601 / RFC3339 で保存する |
 | `created_at`  | S  | createdAt を ISO8601 / RFC3339 で保存する |
 | `pv`          | N  | pv を保存する |
+| `thumbnail_url` | S | thumbnailUrl を保存する |
 
 ### タグ
 
-タグ絞り込みをした場合にヒットするアイテム。ある記事に対して、ついているタグの個数だけ作成される。`slug` を含む `item_type` と `filter_tag` 以外のプロパティは、対応する記事ベースと同じ値を設定する。
+タグ絞り込みをした場合にヒットするアイテム。ある記事に対して、ついているタグの個数だけ作成される。`slug` を含む `item_type` と `filter_tag` 以外のプロパティは、対応する記事ベースと同じ値を設定する。ただし `pv` と `thumbnail_url` は記事ベースにのみ保存し、タグで絞り込んだ一覧では記事ベースから補完する。
 
 | プロパティ名 | 型 | 詳細 |
 |-------------|----|------|
@@ -89,6 +90,8 @@ DynamoDB を使用する。以下の 2 種類のアイテムを 1 テーブル�
   - `source`
   - `content_key`
   - `created_at`
+  - `pv`
+  - `thumbnail_url`
 
 ## テスト
 

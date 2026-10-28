@@ -15,6 +15,8 @@ import (
 
 const gsiStatusTagUpdatedAt = "GSI_StatusTag_UpdatedAt"
 
+const batchGetRetryBaseDelay = 50 * time.Millisecond
+
 type DynamoDBRepository struct {
 	client    *dynamodb.Client
 	tableName string
@@ -65,19 +67,19 @@ func (r *DynamoDBRepository) GetArticleTags(ctx context.Context, getArticleTagsD
 	return outputItem.Tags, nil
 }
 
-func (r *DynamoDBRepository) PutArticle(ctx context.Context, putArticleDTO *putArticleDTO) error {
+func (r *DynamoDBRepository) PutArticle(ctx context.Context, putArticleDTO *putArticleDTO) (*PutArticleOutput, error) {
 	// 既存のタグを取得
 	getArticleTagsDTO, err := NewGetArticleTagsDTO(GetArticleTagsDTOProps{
 		Slug: putArticleDTO.slug,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create GetArticleTagsDTO: %w", err)
+		return nil, fmt.Errorf("failed to create GetArticleTagsDTO: %w", err)
 	}
 
 	existingTags, err := r.GetArticleTags(ctx, getArticleTagsDTO)
 	var notFoundErr *myerrors.NotFoundError
 	if err != nil && !errors.As(err, &notFoundErr) {
-		return fmt.Errorf("failed to get article tags: %w", err)
+		return nil, fmt.Errorf("failed to get article tags: %w", err)
 	}
 
 	// 孤立するタグアイテムは削除する必要がある
@@ -202,10 +204,10 @@ func (r *DynamoDBRepository) PutArticle(ctx context.Context, putArticleDTO *putA
 		TransactItems: transactoinItems,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to put article: %w", err)
+		return nil, fmt.Errorf("failed to put article: %w", err)
 	}
 
-	return nil
+	return &PutArticleOutput{Created: notFoundErr != nil}, nil
 }
 
 func subtractTags(existingTags, newTags []string) []string {
@@ -223,7 +225,7 @@ func subtractTags(existingTags, newTags []string) []string {
 	return tagsToRemove
 }
 
-func (r *DynamoDBRepository) ListArticles(ctx context.Context, props listArticlesDTO) (*listArticlesOutput, error) {
+func (r *DynamoDBRepository) ListArticles(ctx context.Context, props *listArticlesDTO) (*ListArticlesOutput, error) {
 	var filterTag string
 	if props.tag == "" {
 		filterTag = tagAll
@@ -268,9 +270,9 @@ func (r *DynamoDBRepository) ListArticles(ctx context.Context, props listArticle
 		}
 	}
 
-	articleItems := make([]listArticlesOutputItem, len(articles))
+	articleItems := make([]ListArticlesOutputItem, len(articles))
 	for i, article := range articles {
-		articleItems[i] = listArticlesOutputItem{
+		articleItems[i] = ListArticlesOutputItem{
 			Slug:         article.Slug,
 			Status:       article.Status,
 			Title:        article.Title,
@@ -284,13 +286,84 @@ func (r *DynamoDBRepository) ListArticles(ctx context.Context, props listArticle
 		}
 	}
 
-	return &listArticlesOutput{
+	// タグアイテムは記事ベース固有のフィールドを持たないため、記事ベースから補完する
+	if props.tag != "" && len(articleItems) > 0 {
+		articleBases, err := r.batchGetArticleBases(ctx, articleItems)
+		if err != nil {
+			return nil, err
+		}
+		for i := range articleItems {
+			if articleBase, ok := articleBases[articleItems[i].Slug]; ok {
+				articleItems[i].PV = articleBase.PV
+				articleItems[i].ThumbnailURL = articleBase.ThumbnailURL
+			}
+		}
+	}
+
+	return &ListArticlesOutput{
 		Items:            articleItems,
 		lastEvaluatedKey: lastKey,
 	}, nil
 }
 
-func (r *DynamoDBRepository) GetArticle(ctx context.Context, getArticleDTO *getArticleDTO) (*getArticleOutput, error) {
+// 記事ベース固有のフィールドを slug ごとに取得する
+// BatchGetItem は 1 回 100 件までだが、ListArticles の limit も 100 件までなので分割しない
+func (r *DynamoDBRepository) batchGetArticleBases(ctx context.Context, items []ListArticlesOutputItem) (map[string]*articleItem, error) {
+	keys := make([]map[string]types.AttributeValue, len(items))
+	for i, item := range items {
+		pk := articlePKMap{
+			articlePKSlug:     &types.AttributeValueMemberS{Value: item.Slug},
+			articlePKItemType: &types.AttributeValueMemberS{Value: string(ItemTypeArticle)},
+		}
+		keys[i] = pk.ToStringMap()
+	}
+
+	requestItems := map[string]types.KeysAndAttributes{
+		r.tableName: {
+			Keys:                 keys,
+			ProjectionExpression: aws.String("#slug, #pv, #thumbnail_url"),
+			ExpressionAttributeNames: map[string]string{
+				"#slug":          string(articleKeySlug),
+				"#pv":            string(articleKeyPV),
+				"#thumbnail_url": string(articleKeyThumbnailURL),
+			},
+		},
+	}
+
+	articleBases := make(map[string]*articleItem, len(items))
+	// 未処理のキーが返された場合は、指数バックオフを挟んで全て取得できるまで再リクエストする
+	for attempt := 0; len(requestItems) > 0; attempt++ {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(batchGetRetryBaseDelay << (attempt - 1)):
+			}
+		}
+
+		output, err := r.client.BatchGetItem(ctx, &dynamodb.BatchGetItemInput{
+			RequestItems: requestItems,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to batch get articles: %w", err)
+		}
+
+		var pageItems []*articleItem
+		err = attributevalue.UnmarshalListOfMaps(output.Responses[r.tableName], &pageItems)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal articles: %w", err)
+		}
+		for _, item := range pageItems {
+			articleBases[item.Slug] = item
+		}
+
+		requestItems = output.UnprocessedKeys
+	}
+
+	return articleBases, nil
+}
+
+func (r *DynamoDBRepository) GetArticle(ctx context.Context, getArticleDTO *getArticleDTO) (*GetArticleOutput, error) {
 	key := articlePKMap{
 		articlePKSlug:     &types.AttributeValueMemberS{Value: getArticleDTO.slug},
 		articlePKItemType: &types.AttributeValueMemberS{Value: string(ItemTypeArticle)},
@@ -318,7 +391,7 @@ func (r *DynamoDBRepository) GetArticle(ctx context.Context, getArticleDTO *getA
 		return nil, fmt.Errorf("failed to unmarshal article: %w", err)
 	}
 
-	item := getArticleOutput{
+	item := GetArticleOutput{
 		Slug:         article.Slug,
 		Title:        article.Title,
 		Source:       article.Source,
@@ -332,6 +405,49 @@ func (r *DynamoDBRepository) GetArticle(ctx context.Context, getArticleDTO *getA
 	}
 
 	return &item, nil
+}
+
+func (r *DynamoDBRepository) DeleteArticle(ctx context.Context, deleteArticleDTO *deleteArticleDTO) error {
+	// タグアイテムのキーを組み立てるため、既存のタグを取得する
+	getArticleTagsDTO, err := NewGetArticleTagsDTO(GetArticleTagsDTOProps{
+		Slug: deleteArticleDTO.slug,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create GetArticleTagsDTO: %w", err)
+	}
+
+	tags, err := r.GetArticleTags(ctx, getArticleTagsDTO)
+	if err != nil {
+		return fmt.Errorf("failed to get article tags: %w", err)
+	}
+
+	itemTypes := []string{string(ItemTypeArticle)}
+	for _, tag := range tags {
+		itemTypes = append(itemTypes, fmt.Sprintf("%s#%s", ItemTypeTag, tag))
+	}
+
+	transactionItems := make([]types.TransactWriteItem, len(itemTypes))
+	for i, itemType := range itemTypes {
+		pk := articlePKMap{
+			articlePKItemType: &types.AttributeValueMemberS{Value: itemType},
+			articlePKSlug:     &types.AttributeValueMemberS{Value: deleteArticleDTO.slug},
+		}
+		transactionItems[i] = types.TransactWriteItem{
+			Delete: &types.Delete{
+				TableName: aws.String(r.tableName),
+				Key:       pk.ToStringMap(),
+			},
+		}
+	}
+
+	_, err = r.client.TransactWriteItems(ctx, &dynamodb.TransactWriteItemsInput{
+		TransactItems: transactionItems,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete article: %w", err)
+	}
+
+	return nil
 }
 
 // テスト用の関数であるため、実装での使用は不可
