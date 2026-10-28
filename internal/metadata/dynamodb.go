@@ -15,6 +15,8 @@ import (
 
 const gsiStatusTagUpdatedAt = "GSI_StatusTag_UpdatedAt"
 
+const batchGetRetryBaseDelay = 50 * time.Millisecond
+
 type DynamoDBRepository struct {
 	client    *dynamodb.Client
 	tableName string
@@ -284,10 +286,81 @@ func (r *DynamoDBRepository) ListArticles(ctx context.Context, props *listArticl
 		}
 	}
 
+	// タグアイテムは記事ベース固有のフィールドを持たないため、記事ベースから補完する
+	if props.tag != "" && len(articleItems) > 0 {
+		articleBases, err := r.batchGetArticleBases(ctx, articleItems)
+		if err != nil {
+			return nil, err
+		}
+		for i := range articleItems {
+			if articleBase, ok := articleBases[articleItems[i].Slug]; ok {
+				articleItems[i].PV = articleBase.PV
+				articleItems[i].ThumbnailURL = articleBase.ThumbnailURL
+			}
+		}
+	}
+
 	return &ListArticlesOutput{
 		Items:            articleItems,
 		lastEvaluatedKey: lastKey,
 	}, nil
+}
+
+// 記事ベース固有のフィールドを slug ごとに取得する
+// BatchGetItem は 1 回 100 件までだが、ListArticles の limit も 100 件までなので分割しない
+func (r *DynamoDBRepository) batchGetArticleBases(ctx context.Context, items []ListArticlesOutputItem) (map[string]*articleItem, error) {
+	keys := make([]map[string]types.AttributeValue, len(items))
+	for i, item := range items {
+		pk := articlePKMap{
+			articlePKSlug:     &types.AttributeValueMemberS{Value: item.Slug},
+			articlePKItemType: &types.AttributeValueMemberS{Value: string(ItemTypeArticle)},
+		}
+		keys[i] = pk.ToStringMap()
+	}
+
+	requestItems := map[string]types.KeysAndAttributes{
+		r.tableName: {
+			Keys:                 keys,
+			ProjectionExpression: aws.String("#slug, #pv, #thumbnail_url"),
+			ExpressionAttributeNames: map[string]string{
+				"#slug":          string(articleKeySlug),
+				"#pv":            string(articleKeyPV),
+				"#thumbnail_url": string(articleKeyThumbnailURL),
+			},
+		},
+	}
+
+	articleBases := make(map[string]*articleItem, len(items))
+	// 未処理のキーが返された場合は、指数バックオフを挟んで全て取得できるまで再リクエストする
+	for attempt := 0; len(requestItems) > 0; attempt++ {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(batchGetRetryBaseDelay << (attempt - 1)):
+			}
+		}
+
+		output, err := r.client.BatchGetItem(ctx, &dynamodb.BatchGetItemInput{
+			RequestItems: requestItems,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to batch get articles: %w", err)
+		}
+
+		var pageItems []*articleItem
+		err = attributevalue.UnmarshalListOfMaps(output.Responses[r.tableName], &pageItems)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal articles: %w", err)
+		}
+		for _, item := range pageItems {
+			articleBases[item.Slug] = item
+		}
+
+		requestItems = output.UnprocessedKeys
+	}
+
+	return articleBases, nil
 }
 
 func (r *DynamoDBRepository) GetArticle(ctx context.Context, getArticleDTO *getArticleDTO) (*GetArticleOutput, error) {

@@ -1313,6 +1313,9 @@ func compareListArticlesOutputItems(a, b ListArticlesOutputItem) bool {
 	if a.PV != b.PV {
 		return false
 	}
+	if a.ThumbnailURL != b.ThumbnailURL {
+		return false
+	}
 	return true
 }
 
