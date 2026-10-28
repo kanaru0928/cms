@@ -41,16 +41,16 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 }
 
 // PresignPutThumbnail mocks base method.
-func (m *MockRepository) PresignPutThumbnail(ctx context.Context, key, contentType string) (string, error) {
+func (m *MockRepository) PresignPutThumbnail(ctx context.Context, props PresignPutThumbnailProps) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PresignPutThumbnail", ctx, key, contentType)
+	ret := m.ctrl.Call(m, "PresignPutThumbnail", ctx, props)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // PresignPutThumbnail indicates an expected call of PresignPutThumbnail.
-func (mr *MockRepositoryMockRecorder) PresignPutThumbnail(ctx, key, contentType any) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) PresignPutThumbnail(ctx, props any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PresignPutThumbnail", reflect.TypeOf((*MockRepository)(nil).PresignPutThumbnail), ctx, key, contentType)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PresignPutThumbnail", reflect.TypeOf((*MockRepository)(nil).PresignPutThumbnail), ctx, props)
 }

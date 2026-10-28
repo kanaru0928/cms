@@ -24,11 +24,12 @@ func NewS3Repository(cfg *aws.Config, bucketName string) *S3Repository {
 	}
 }
 
-func (r *S3Repository) PresignPutThumbnail(ctx context.Context, key, contentType string) (string, error) {
+func (r *S3Repository) PresignPutThumbnail(ctx context.Context, props PresignPutThumbnailProps) (string, error) {
 	req, err := r.presignClient.PresignPutObject(ctx, &s3.PutObjectInput{
 		Bucket:      aws.String(r.bucketName),
-		Key:         aws.String(key),
-		ContentType: aws.String(contentType),
+		Key:         aws.String(props.Key),
+		ContentType: aws.String(props.ContentType),
+		ContentMD5:  aws.String(props.ContentMD5),
 	}, s3.WithPresignExpires(uploadURLExpires), withSignedContentType)
 	if err != nil {
 		return "", fmt.Errorf("failed to presign put object: %w", err)

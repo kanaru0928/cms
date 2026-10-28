@@ -5,5 +5,5 @@ package thumbnail
 import "context"
 
 type Repository interface {
-	PresignPutThumbnail(ctx context.Context, key, contentType string) (string, error)
+	PresignPutThumbnail(ctx context.Context, props PresignPutThumbnailProps) (string, error)
 }

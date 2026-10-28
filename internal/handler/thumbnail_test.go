@@ -21,6 +21,7 @@ func TestThumbnailsCreateUploadUrl(t *testing.T) {
 		return api.ThumbnailsCreateUploadUrlRequestObject{
 			Body: &api.ThumbnailsCreateUploadUrlJSONRequestBody{
 				ContentType: contentType,
+				Md5:         "098f6bcd4621d373cade4e832627b4f6",
 			},
 		}
 	}
@@ -34,9 +35,9 @@ func TestThumbnailsCreateUploadUrl(t *testing.T) {
 			thumbnailService: thumbnail.NewService(thumbnailMock),
 		}
 
-		thumbnailMock.EXPECT().PresignPutThumbnail(gomock.Any(), gomock.Any(), "image/png").Return("https://example.com/upload", nil)
+		thumbnailMock.EXPECT().PresignPutThumbnail(gomock.Any(), gomock.Any()).Return("https://example.com/upload", nil)
 
-		response, err := s.ThumbnailsCreateUploadUrl(c.Request().Context(), newRequest(api.Imagepng))
+		response, err := s.ThumbnailsCreateUploadUrl(c.Request().Context(), newRequest(api.Imagewebp))
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
@@ -58,7 +59,7 @@ func TestThumbnailsCreateUploadUrl(t *testing.T) {
 			thumbnailService: thumbnail.NewService(thumbnailMock),
 		}
 
-		response, err := s.ThumbnailsCreateUploadUrl(c.Request().Context(), newRequest("image/gif"))
+		response, err := s.ThumbnailsCreateUploadUrl(c.Request().Context(), newRequest("image/png"))
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
@@ -80,9 +81,9 @@ func TestThumbnailsCreateUploadUrl(t *testing.T) {
 			thumbnailService: thumbnail.NewService(thumbnailMock),
 		}
 
-		thumbnailMock.EXPECT().PresignPutThumbnail(gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("presign error"))
+		thumbnailMock.EXPECT().PresignPutThumbnail(gomock.Any(), gomock.Any()).Return("", errors.New("presign error"))
 
-		if _, err := s.ThumbnailsCreateUploadUrl(c.Request().Context(), newRequest(api.Imagepng)); err == nil {
+		if _, err := s.ThumbnailsCreateUploadUrl(c.Request().Context(), newRequest(api.Imagewebp)); err == nil {
 			t.Fatalf("expected error, got nil")
 		}
 	})

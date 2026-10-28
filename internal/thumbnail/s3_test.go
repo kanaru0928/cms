@@ -18,7 +18,11 @@ func TestPresignPutThumbnail(t *testing.T) {
 	}
 	repo := NewS3Repository(&cfg, bucketName)
 
-	got, err := repo.PresignPutThumbnail(context.Background(), "thumbnails/test.png", "image/png")
+	got, err := repo.PresignPutThumbnail(context.Background(), PresignPutThumbnailProps{
+		Key:         "thumbnails/test.webp",
+		ContentType: "image/webp",
+		ContentMD5:  testMD5Base64,
+	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -27,14 +31,14 @@ func TestPresignPutThumbnail(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to parse url: %v", err)
 	}
-	if u.Path != "/thumbnails/test.png" {
-		t.Errorf("Path = %v, want %v", u.Path, "/thumbnails/test.png")
+	if u.Path != "/thumbnails/test.webp" {
+		t.Errorf("Path = %v, want %v", u.Path, "/thumbnails/test.webp")
 	}
 	query := u.Query()
 	if query.Get("X-Amz-Expires") != "300" {
 		t.Errorf("X-Amz-Expires = %v, want %v", query.Get("X-Amz-Expires"), "300")
 	}
-	if query.Get("X-Amz-SignedHeaders") != "content-type;host" {
-		t.Errorf("X-Amz-SignedHeaders = %v, want %v", query.Get("X-Amz-SignedHeaders"), "content-type;host")
+	if query.Get("X-Amz-SignedHeaders") != "content-md5;content-type;host" {
+		t.Errorf("X-Amz-SignedHeaders = %v, want %v", query.Get("X-Amz-SignedHeaders"), "content-md5;content-type;host")
 	}
 }

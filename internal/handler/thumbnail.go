@@ -14,6 +14,7 @@ import (
 func (s *server) ThumbnailsCreateUploadUrl(ctx context.Context, request api.ThumbnailsCreateUploadUrlRequestObject) (api.ThumbnailsCreateUploadUrlResponseObject, error) {
 	output, err := s.thumbnailService.CreateUploadURL(ctx, thumbnail.CreateUploadURLProps{
 		ContentType: string(request.Body.ContentType),
+		MD5:         request.Body.Md5,
 	})
 	var validationErr *myerrors.ValidationError
 	if errors.As(err, &validationErr) {
