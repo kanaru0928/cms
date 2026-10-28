@@ -11,6 +11,7 @@ import (
 	"github.com/kanaru0928/cms/internal/auth"
 	"github.com/kanaru0928/cms/internal/content"
 	"github.com/kanaru0928/cms/internal/metadata"
+	"github.com/kanaru0928/cms/internal/thumbnail"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 )
@@ -38,11 +39,13 @@ func DefineListener(port int) {
 
 	contentRepository := content.NewS3Repository(&awsConfig, appConfig.S3BucketName, appConfig.S3Prefix)
 	metadataRepository := metadata.NewDynamoDBRepository(&awsConfig, appConfig.DynamoDBTableName)
+	thumbnailRepository := thumbnail.NewS3Repository(&awsConfig, appConfig.ThumbnailS3BucketName)
 
 	server := NewServer(&ServerDependencies{
-		Authenticator:      auth,
-		ContentRepository:  contentRepository,
-		MetadataRepository: metadataRepository,
+		Authenticator:       auth,
+		ContentRepository:   contentRepository,
+		MetadataRepository:  metadataRepository,
+		ThumbnailRepository: thumbnailRepository,
 	})
 
 	mw, err := server.CreateMiddleware()

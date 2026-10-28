@@ -9,6 +9,7 @@ import (
 	"github.com/kanaru0928/cms/internal/auth"
 	"github.com/kanaru0928/cms/internal/content"
 	"github.com/kanaru0928/cms/internal/metadata"
+	"github.com/kanaru0928/cms/internal/thumbnail"
 	"github.com/labstack/echo/v5"
 	middleware "github.com/oapi-codegen/echo-v5-middleware"
 )
@@ -18,12 +19,14 @@ type server struct {
 	contentRepository  content.Repository
 	metadataRepository metadata.Repository
 	articleService     *article.Service
+	thumbnailService   *thumbnail.Service
 }
 
 type ServerDependencies struct {
-	Authenticator      auth.Authenticator
-	ContentRepository  content.Repository
-	MetadataRepository metadata.Repository
+	Authenticator       auth.Authenticator
+	ContentRepository   content.Repository
+	MetadataRepository  metadata.Repository
+	ThumbnailRepository thumbnail.Repository
 }
 
 func NewServer(dependencies *ServerDependencies) *server {
@@ -32,6 +35,7 @@ func NewServer(dependencies *ServerDependencies) *server {
 		contentRepository:  dependencies.ContentRepository,
 		metadataRepository: dependencies.MetadataRepository,
 		articleService:     article.NewService(dependencies.ContentRepository, dependencies.MetadataRepository),
+		thumbnailService:   thumbnail.NewService(dependencies.ThumbnailRepository),
 	}
 }
 

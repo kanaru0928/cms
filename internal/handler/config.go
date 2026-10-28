@@ -12,6 +12,7 @@ type Config struct {
 	S3BucketName string
 	S3Prefix string
 	DynamoDBTableName string
+	ThumbnailS3BucketName string
 }
 
 func LoadConfig() (*Config, error) {
@@ -23,6 +24,7 @@ func LoadConfig() (*Config, error) {
 	s3BucketName := os.Getenv("S3_BUCKET_NAME")
 	s3Prefix := os.Getenv("S3_PREFIX")
 	dynamoDBTableName := os.Getenv("DYNAMODB_TABLE_NAME")
+	thumbnailS3BucketName := os.Getenv("THUMBNAIL_S3_BUCKET_NAME")
 
 	if port == 0 {
 		port = 8080
@@ -39,6 +41,9 @@ func LoadConfig() (*Config, error) {
 	if dynamoDBTableName == "" {
 		return nil, fmt.Errorf("DYNAMODB_TABLE_NAME environment variable is not set")
 	}
+	if thumbnailS3BucketName == "" {
+		return nil, fmt.Errorf("THUMBNAIL_S3_BUCKET_NAME environment variable is not set")
+	}
 
 	return &Config{
 		Port: port,
@@ -46,5 +51,6 @@ func LoadConfig() (*Config, error) {
 		S3BucketName: s3BucketName,
 		S3Prefix: s3Prefix,
 		DynamoDBTableName: dynamoDBTableName,
+		ThumbnailS3BucketName: thumbnailS3BucketName,
 	}, nil
 }
