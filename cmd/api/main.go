@@ -1,4 +1,4 @@
-package lambda
+package main
 
 import "github.com/kanaru0928/cms/internal/handler"
 

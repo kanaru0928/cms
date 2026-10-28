@@ -44,6 +44,7 @@ func LoadConfig() (*Config, error) {
 		Port: port,
 		JWKSURL: jwksURL,
 		S3BucketName: s3BucketName,
+		S3Prefix: s3Prefix,
 		DynamoDBTableName: dynamoDBTableName,
 	}, nil
 }

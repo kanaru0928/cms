@@ -85,6 +85,7 @@ func TestCreateAuthenticationFunc(t *testing.T) {
 
 	tests := []struct {
 		name          string
+		headerName    string
 		authHeader    string
 		setAuthHeader bool
 		fetcher       Fetcher
@@ -92,8 +93,16 @@ func TestCreateAuthenticationFunc(t *testing.T) {
 		wantToken     bool
 	}{
 		{
-			name:          "Authorizationヘッダーが無いとエラー",
+			name:          "KCMS-Authorizationヘッダーが無いとエラー",
 			setAuthHeader: false,
+			fetcher:       &fakeJWKSFetcher{jwks: jwksWithA},
+			wantErr:       true,
+		},
+		{
+			name:          "Authorizationヘッダーのトークンは受け付けない",
+			headerName:    "Authorization",
+			setAuthHeader: true,
+			authHeader:    "Bearer " + validToken,
 			fetcher:       &fakeJWKSFetcher{jwks: jwksWithA},
 			wantErr:       true,
 		},
@@ -132,7 +141,11 @@ func TestCreateAuthenticationFunc(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
 			if tt.setAuthHeader {
-				req.Header.Set("Authorization", tt.authHeader)
+				headerName := authorizationHeader
+				if tt.headerName != "" {
+					headerName = tt.headerName
+				}
+				req.Header.Set(headerName, tt.authHeader)
 			}
 
 			input := &openapi3filter.AuthenticationInput{

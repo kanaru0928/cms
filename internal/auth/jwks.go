@@ -13,6 +13,8 @@ import (
 
 type tokenContextKey struct{}
 
+const authorizationHeader = "KCMS-Authorization"
+
 type jwksAuthenticator struct {
 	fetcher Fetcher
 }
@@ -42,13 +44,13 @@ func (c *jwksAuthenticator) validate(ctx context.Context, token string) (jwt.Tok
 func (c *jwksAuthenticator) CreateAuthenticationFunc() openapi3filter.AuthenticationFunc {
 	return func(ctx context.Context, input *openapi3filter.AuthenticationInput) error {
 		req := input.RequestValidationInput.Request
-		authorization := req.Header.Get("Authorization")
+		authorization := req.Header.Get(authorizationHeader)
 		if authorization == "" {
 			return echo.ErrUnauthorized
 		}
 
 		if !strings.HasPrefix(authorization, "Bearer ") {
-			return echo.ErrUnauthorized.Wrap(fmt.Errorf("invalid Authorization header format"))
+			return echo.ErrUnauthorized.Wrap(fmt.Errorf("invalid %s header format", authorizationHeader))
 		}
 
 		token := strings.TrimPrefix(authorization, "Bearer ")
