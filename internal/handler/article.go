@@ -64,6 +64,10 @@ func (s *server) ArticlesList(ctx context.Context, request api.ArticlesListReque
 		Status: status,
 		Order:  order,
 	})
+	var validationErr *myerrors.ValidationError
+	if errors.As(err, &validationErr) {
+		return api.ArticlesList422JSONResponse{Error: validationErr.Message}, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ListArticlesDTO: %w", err)
 	}

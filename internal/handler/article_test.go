@@ -135,6 +135,34 @@ func TestArticlesList(t *testing.T) {
 			t.Fatalf("expected status code %d, got %d", http.StatusOK, rec.Code)
 		}
 	})
+
+	t.Run("入力が不正な場合は 422 が返る", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/articles?limit=0", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		s := &server{
+			metadataRepository: metadataMock,
+			contentRepository:  contentMock,
+			authenticator:      authenticatorMock,
+		}
+
+		authenticatorMock.EXPECT().GetTokenFromContext(gomock.Any()).Return(nil, false)
+
+		limit := int32(0)
+
+		response, err := s.ArticlesList(c.Request().Context(), api.ArticlesListRequestObject{Params: api.ArticlesListParams{Limit: &limit}})
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if err := response.VisitArticlesListResponse(rec); err != nil {
+			t.Fatalf("expected response to be written, got %v", err)
+		}
+
+		if rec.Code != http.StatusUnprocessableEntity {
+			t.Fatalf("expected status code %d, got %d", http.StatusUnprocessableEntity, rec.Code)
+		}
+	})
 }
 
 func TestArticlesRead(t *testing.T) {
