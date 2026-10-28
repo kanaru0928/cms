@@ -13,7 +13,6 @@ import (
 
 type tokenContextKey struct{}
 
-// CloudFront の OAC が Authorization ヘッダーを署名で上書きするため、独自ヘッダーでトークンを受け取る
 const authorizationHeader = "KCMS-Authorization"
 
 type jwksAuthenticator struct {
