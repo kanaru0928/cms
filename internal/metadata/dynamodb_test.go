@@ -43,6 +43,8 @@ func createTable(ctx context.Context, repository *DynamoDBRepository) error {
 						string(articleKeySource),
 						string(articleKeyContentKey),
 						string(articleKeyCreatedAt),
+						string(articleKeyPV),
+						string(articleKeyThumbnailURL),
 					},
 				},
 			},

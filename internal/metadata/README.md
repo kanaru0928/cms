@@ -56,6 +56,7 @@ DynamoDB を使用する。以下の 2 種類のアイテムを 1 テーブル�
 | `updated_at`  | S  | updatedAt を ISO8601 / RFC3339 で保存する |
 | `created_at`  | S  | createdAt を ISO8601 / RFC3339 で保存する |
 | `pv`          | N  | pv を保存する |
+| `thumbnail_url` | S | thumbnailUrl を保存する |
 
 ### タグ
 
@@ -89,6 +90,8 @@ DynamoDB を使用する。以下の 2 種類のアイテムを 1 テーブル�
   - `source`
   - `content_key`
   - `created_at`
+  - `pv`
+  - `thumbnail_url`
 
 ## テスト
 
