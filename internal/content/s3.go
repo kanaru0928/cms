@@ -2,6 +2,7 @@ package content
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -61,14 +62,15 @@ func (r *S3Repository) GetTextContent(ctx context.Context, key string) (ContentT
 		Bucket: aws.String(r.bucketName),
 		Key:    aws.String(r.getFullKey(key)),
 	})
-	if err != nil {
-		return "", err
-	}
-	if resp == nil {
+	var noSuchKeyErr *types.NoSuchKey
+	if errors.As(err, &noSuchKeyErr) {
 		return "", &myerrors.NotFoundError{
 			ID:           key,
 			ResourceType: "content",
 		}
+	}
+	if err != nil {
+		return "", err
 	}
 	defer resp.Body.Close()
 

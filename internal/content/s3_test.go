@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/kanaru0928/cms/internal/myerrors"
 )
 
 const bucketName = "bucket"
@@ -111,7 +112,7 @@ func TestGetTextContent(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:       "存在しないキーを指定するとエラー",
+			name:       "存在しないキーを指定すると NotFoundError",
 			beforeFunc: func() error { return nil },
 			input:      "non-existent-key",
 			want:       "",
@@ -128,6 +129,9 @@ func TestGetTextContent(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetTextContent() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			}
+			if tt.wantErr && !myerrors.HasSameTypeAs(err, &myerrors.NotFoundError{}) {
+				t.Errorf("GetTextContent() error = %v, want NotFoundError", err)
 			}
 			if !tt.wantErr && got != tt.want {
 				t.Errorf("GetTextContent() got = %v, want %v", got, tt.want)
