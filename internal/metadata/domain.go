@@ -167,6 +167,11 @@ func NewPutArticleDTO(props PutArticleDTOProps) (*putArticleDTO, error) {
 		}
 	}
 
+	thumbnailURLLength := len(props.ThumbnailURL)
+	if thumbnailURLLength < thumbnailURLMinLength || thumbnailURLLength > thumbnailURLMaxLength {
+		return nil, &myerrors.ValidationError{Message: fmt.Sprintf("thumbnailURL must be between %d and %d characters", thumbnailURLMinLength, thumbnailURLMaxLength)}
+	}
+
 	return &putArticleDTO{
 		slug:         props.Slug,
 		title:        props.Title,
