@@ -137,6 +137,137 @@ func TestArticlesList(t *testing.T) {
 	})
 }
 
+func TestArticlesRead(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	e := echo.New()
+	metadataMock := metadata.NewMockRepository(ctrl)
+	contentMock := content.NewMockRepository(ctrl)
+	authenticatorMock := auth.NewMockAuthenticator(ctrl)
+
+	newServer := func() *server {
+		return &server{
+			metadataRepository: metadataMock,
+			contentRepository:  contentMock,
+			authenticator:      authenticatorMock,
+		}
+	}
+
+	t.Run("認証なしで公開済みの記事を取得できる", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/articles/test-article", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		authenticatorMock.EXPECT().GetTokenFromContext(gomock.Any()).Return(nil, false)
+		metadataMock.EXPECT().GetArticle(gomock.Any(), gomock.Any()).Return(&metadata.GetArticleOutput{
+			Slug: "test-article", Status: metadata.StatusPublished, ContentKey: "articles/test-article/hash.md",
+		}, nil)
+		contentMock.EXPECT().GetTextContent(gomock.Any(), "articles/test-article/hash.md").Return(content.ContentType("content"), nil)
+
+		response, err := newServer().ArticlesRead(c.Request().Context(), api.ArticlesReadRequestObject{Slug: "test-article"})
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if err := response.VisitArticlesReadResponse(rec); err != nil {
+			t.Fatalf("expected response to be written, got %v", err)
+		}
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status code %d, got %d", http.StatusOK, rec.Code)
+		}
+	})
+
+	t.Run("認証なしで非公開記事を取得しようとすると 404 が返る", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/articles/test-article", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		authenticatorMock.EXPECT().GetTokenFromContext(gomock.Any()).Return(nil, false)
+		metadataMock.EXPECT().GetArticle(gomock.Any(), gomock.Any()).Return(&metadata.GetArticleOutput{
+			Slug: "test-article", Status: metadata.StatusUnpublished,
+		}, nil)
+
+		response, err := newServer().ArticlesRead(c.Request().Context(), api.ArticlesReadRequestObject{Slug: "test-article"})
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if err := response.VisitArticlesReadResponse(rec); err != nil {
+			t.Fatalf("expected response to be written, got %v", err)
+		}
+
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("expected status code %d, got %d", http.StatusNotFound, rec.Code)
+		}
+	})
+
+	t.Run("認証ありで非公開記事を取得できる", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/articles/test-article", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		authenticatorMock.EXPECT().GetTokenFromContext(gomock.Any()).Return(jwt.New(), true)
+		metadataMock.EXPECT().GetArticle(gomock.Any(), gomock.Any()).Return(&metadata.GetArticleOutput{
+			Slug: "test-article", Status: metadata.StatusUnpublished, ContentKey: "articles/test-article/hash.md",
+		}, nil)
+		contentMock.EXPECT().GetTextContent(gomock.Any(), "articles/test-article/hash.md").Return(content.ContentType("content"), nil)
+
+		response, err := newServer().ArticlesRead(c.Request().Context(), api.ArticlesReadRequestObject{Slug: "test-article"})
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if err := response.VisitArticlesReadResponse(rec); err != nil {
+			t.Fatalf("expected response to be written, got %v", err)
+		}
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status code %d, got %d", http.StatusOK, rec.Code)
+		}
+	})
+
+	t.Run("記事が存在しない場合は 404 が返る", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/articles/test-article", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		authenticatorMock.EXPECT().GetTokenFromContext(gomock.Any()).Return(nil, false)
+		metadataMock.EXPECT().GetArticle(gomock.Any(), gomock.Any()).Return(nil, &myerrors.NotFoundError{
+			ID:           "test-article",
+			ResourceType: "Article",
+		})
+
+		response, err := newServer().ArticlesRead(c.Request().Context(), api.ArticlesReadRequestObject{Slug: "test-article"})
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if err := response.VisitArticlesReadResponse(rec); err != nil {
+			t.Fatalf("expected response to be written, got %v", err)
+		}
+
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("expected status code %d, got %d", http.StatusNotFound, rec.Code)
+		}
+	})
+
+	t.Run("入力が不正な場合は 422 が返る", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/articles/", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		authenticatorMock.EXPECT().GetTokenFromContext(gomock.Any()).Return(nil, false)
+
+		response, err := newServer().ArticlesRead(c.Request().Context(), api.ArticlesReadRequestObject{Slug: ""})
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if err := response.VisitArticlesReadResponse(rec); err != nil {
+			t.Fatalf("expected response to be written, got %v", err)
+		}
+
+		if rec.Code != http.StatusUnprocessableEntity {
+			t.Fatalf("expected status code %d, got %d", http.StatusUnprocessableEntity, rec.Code)
+		}
+	})
+}
+
 func TestArticlesUpsert(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	e := echo.New()

@@ -93,16 +93,32 @@ func (s *server) ArticlesList(ctx context.Context, request api.ArticlesListReque
 
 // ArticlesRead implements [api.StrictServerInterface].
 func (s *server) ArticlesRead(ctx context.Context, request api.ArticlesReadRequestObject) (api.ArticlesReadResponseObject, error) {
+	_, found := s.authenticator.GetTokenFromContext(ctx)
+
 	getArticleDTO, err := metadata.NewGetArticleDTO(metadata.GetArticleDTOProps{
 		Slug: request.Slug,
 	})
+	var validationErr *myerrors.ValidationError
+	if errors.As(err, &validationErr) {
+		return api.ArticlesRead422JSONResponse{Error: validationErr.Message}, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GetArticleDTO: %w", err)
 	}
 
 	article, err := s.metadataRepository.GetArticle(ctx, getArticleDTO)
+	var notFoundErr *myerrors.NotFoundError
+	if errors.As(err, &notFoundErr) {
+		return api.ArticlesRead404JSONResponse{Error: notFoundErr.Error()}, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get article: %w", err)
+	}
+
+	// 非公開記事の存在を隠すため、未認証の場合は記事が存在しない場合と同じレスポンスを返す
+	if !found && article.Status == metadata.StatusUnpublished {
+		notFoundErr := &myerrors.NotFoundError{ID: request.Slug, ResourceType: "Article"}
+		return api.ArticlesRead404JSONResponse{Error: notFoundErr.Error()}, nil
 	}
 
 	content, err := s.contentRepository.GetTextContent(ctx, article.ContentKey)
