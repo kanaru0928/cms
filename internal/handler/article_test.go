@@ -429,8 +429,8 @@ func TestArticlesDelete(t *testing.T) {
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 
-		metadataMock.EXPECT().DeleteArticle(gomock.Any(), gomock.Any()).Return(nil)
 		contentMock.EXPECT().DeleteContentsByPrefix(gomock.Any(), gomock.Any()).Return(nil)
+		metadataMock.EXPECT().DeleteArticle(gomock.Any(), gomock.Any()).Return(nil)
 
 		response, err := newServer().ArticlesDelete(c.Request().Context(), api.ArticlesDeleteRequestObject{Slug: "test-article"})
 		if err != nil {
@@ -450,6 +450,7 @@ func TestArticlesDelete(t *testing.T) {
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 
+		contentMock.EXPECT().DeleteContentsByPrefix(gomock.Any(), gomock.Any()).Return(nil)
 		metadataMock.EXPECT().DeleteArticle(gomock.Any(), gomock.Any()).Return(&myerrors.NotFoundError{
 			ID:           "test-article",
 			ResourceType: "Article",

@@ -10,7 +10,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
 	"github.com/kanaru0928/cms/internal/myerrors"
+)
+
+const (
+	contentCacheControl = "public, max-age=0, s-maxage=3600"
+	contentType         = "text/markdown; charset=utf-8"
 )
 
 type S3Repository struct {
@@ -50,7 +56,17 @@ func (r *S3Repository) PutTextContent(ctx context.Context, props putTextContentD
 		Bucket: aws.String(r.bucketName),
 		Key:    aws.String(r.getFullKey(props.key)),
 		Body:   strings.NewReader(string(props.content)),
+		// 本文は immutable なため、CDN では長くキャッシュする
+		CacheControl: aws.String(contentCacheControl),
+		ContentType:  aws.String(contentType),
+		// 本文は immutable なため、既存のキーは上書きしない
+		IfNoneMatch: aws.String("*"),
 	})
+	// キーは本文のハッシュから決まるため、既に存在する場合は同じ本文が保存されている
+	var apiErr smithy.APIError
+	if errors.As(err, &apiErr) && apiErr.ErrorCode() == "PreconditionFailed" {
+		return nil
+	}
 	if err != nil {
 		return fmt.Errorf("failed to put content: %w", err)
 	}

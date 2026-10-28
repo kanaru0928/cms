@@ -119,13 +119,13 @@ func (s *Service) DeleteArticle(ctx context.Context, props DeleteArticleProps) e
 		return err
 	}
 
-	// 本文を先に消すと、削除に失敗した場合に本文のない記事が残るため、メタデータから削除する
-	if err := s.metadataRepository.DeleteArticle(ctx, deleteArticleDTO); err != nil {
-		return fmt.Errorf("failed to delete article: %w", err)
-	}
-
+	// メタデータを先に消すと、本文の削除に失敗した場合に再実行しても 404 となり本文が残るため、本文から削除する
 	if err := s.contentRepository.DeleteContentsByPrefix(ctx, *deleteContentsDTO); err != nil {
 		return fmt.Errorf("failed to delete contents: %w", err)
+	}
+
+	if err := s.metadataRepository.DeleteArticle(ctx, deleteArticleDTO); err != nil {
+		return fmt.Errorf("failed to delete article: %w", err)
 	}
 
 	return nil

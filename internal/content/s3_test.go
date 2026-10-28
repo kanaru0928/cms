@@ -4,8 +4,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/kanaru0928/cms/internal/myerrors"
 )
 
@@ -62,6 +64,22 @@ func TestPutTextContent(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("Cache-Control と Content-Type を設定する", func(t *testing.T) {
+		output, err := repo.client.HeadObject(context.Background(), &s3.HeadObjectInput{
+			Bucket: aws.String(bucketName),
+			Key:    aws.String("test-prefix/test-key"),
+		})
+		if err != nil {
+			t.Fatalf("failed to head content: %v", err)
+		}
+		if aws.ToString(output.CacheControl) != contentCacheControl {
+			t.Errorf("CacheControl = %v, want %v", aws.ToString(output.CacheControl), contentCacheControl)
+		}
+		if aws.ToString(output.ContentType) != contentType {
+			t.Errorf("ContentType = %v, want %v", aws.ToString(output.ContentType), contentType)
+		}
+	})
 
 	t.Run("アップロードに失敗するとエラー", func(t *testing.T) {
 		repo := newS3RepositoryForTest(&cfg, "non-existent-bucket", "test-prefix/", "http://localhost:3900", "garage")

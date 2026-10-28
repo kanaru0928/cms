@@ -261,7 +261,7 @@ func TestUpsertArticle(t *testing.T) {
 }
 
 func TestDeleteArticle(t *testing.T) {
-	t.Run("メタデータを削除してから本文を全て削除する", func(t *testing.T) {
+	t.Run("本文を全て削除してからメタデータを削除する", func(t *testing.T) {
 		s, contentMock, metadataMock := newServiceForTest(t)
 
 		wantDeleteArticleDTO, err := metadata.NewDeleteArticleDTO(metadata.DeleteArticleDTOProps{Slug: "test-article"})
@@ -276,8 +276,8 @@ func TestDeleteArticle(t *testing.T) {
 		}
 
 		gomock.InOrder(
-			metadataMock.EXPECT().DeleteArticle(gomock.Any(), gomock.Eq(wantDeleteArticleDTO)).Return(nil),
 			contentMock.EXPECT().DeleteContentsByPrefix(gomock.Any(), gomock.Eq(*wantDeleteContentsDTO)).Return(nil),
+			metadataMock.EXPECT().DeleteArticle(gomock.Any(), gomock.Eq(wantDeleteArticleDTO)).Return(nil),
 		)
 
 		if err := s.DeleteArticle(context.Background(), DeleteArticleProps{Slug: "test-article"}); err != nil {
@@ -294,9 +294,10 @@ func TestDeleteArticle(t *testing.T) {
 		}
 	})
 
-	t.Run("記事が存在しない場合は本文を削除せずに NotFoundError を返す", func(t *testing.T) {
-		s, _, metadataMock := newServiceForTest(t)
+	t.Run("記事が存在しない場合は NotFoundError を返す", func(t *testing.T) {
+		s, contentMock, metadataMock := newServiceForTest(t)
 
+		contentMock.EXPECT().DeleteContentsByPrefix(gomock.Any(), gomock.Any()).Return(nil)
 		metadataMock.EXPECT().DeleteArticle(gomock.Any(), gomock.Any()).Return(&myerrors.NotFoundError{
 			ID:           "test-article",
 			ResourceType: "Article",
@@ -308,11 +309,10 @@ func TestDeleteArticle(t *testing.T) {
 		}
 	})
 
-	t.Run("本文の削除に失敗した場合はエラーを返す", func(t *testing.T) {
-		s, contentMock, metadataMock := newServiceForTest(t)
+	t.Run("本文の削除に失敗した場合はメタデータを削除せずにエラーを返す", func(t *testing.T) {
+		s, contentMock, _ := newServiceForTest(t)
 
 		repoErr := errors.New("content error")
-		metadataMock.EXPECT().DeleteArticle(gomock.Any(), gomock.Any()).Return(nil)
 		contentMock.EXPECT().DeleteContentsByPrefix(gomock.Any(), gomock.Any()).Return(repoErr)
 
 		err := s.DeleteArticle(context.Background(), DeleteArticleProps{Slug: "test-article"})

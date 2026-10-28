@@ -47,5 +47,5 @@ func (s *server) CreateMiddleware() ([]echo.MiddlewareFunc, error) {
 		},
 	})
 
-	return []echo.MiddlewareFunc{validator}, nil
+	return []echo.MiddlewareFunc{privateCacheControlMiddleware, validator, s.publicCacheControlMiddleware}, nil
 }
