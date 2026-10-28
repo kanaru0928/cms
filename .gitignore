@@ -1,1 +1,2 @@
-.envdist/
+.env
+dist/
