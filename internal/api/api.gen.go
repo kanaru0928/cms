@@ -56,6 +56,27 @@ func (e SortOrder) Valid() bool {
 	}
 }
 
+// Defines values for ThumbnailContentType.
+const (
+	Imagejpeg ThumbnailContentType = "image/jpeg"
+	Imagepng  ThumbnailContentType = "image/png"
+	Imagewebp ThumbnailContentType = "image/webp"
+)
+
+// Valid indicates whether the value is a known member of the ThumbnailContentType enum.
+func (e ThumbnailContentType) Valid() bool {
+	switch e {
+	case Imagejpeg:
+		return true
+	case Imagepng:
+		return true
+	case Imagewebp:
+		return true
+	default:
+		return false
+	}
+}
+
 // ArticleDetail defines model for ArticleDetail.
 type ArticleDetail struct {
 	Content      string        `json:"content"`
@@ -86,6 +107,11 @@ type ArticleMetadata struct {
 // ArticleStatus defines model for ArticleStatus.
 type ArticleStatus string
 
+// CreateThumbnailUploadUrl defines model for CreateThumbnailUploadUrl.
+type CreateThumbnailUploadUrl struct {
+	ContentType ThumbnailContentType `json:"contentType"`
+}
+
 // DeleteSuccess defines model for DeleteSuccess.
 type DeleteSuccess struct {
 	Message string `json:"message"`
@@ -98,6 +124,18 @@ type Error struct {
 
 // SortOrder defines model for SortOrder.
 type SortOrder string
+
+// ThumbnailContentType defines model for ThumbnailContentType.
+type ThumbnailContentType string
+
+// ThumbnailUploadUrl defines model for ThumbnailUploadUrl.
+type ThumbnailUploadUrl struct {
+	// UploadUrl アップロード先の署名付き URL。`PUT` で `Content-Type` を指定してアップロードします
+	UploadUrl string `json:"uploadUrl"`
+
+	// Url アップロード後に配信されるパス
+	Url string `json:"url"`
+}
 
 // UpsertTextArticle defines model for UpsertTextArticle.
 type UpsertTextArticle struct {
@@ -120,6 +158,9 @@ type ArticlesListParams struct {
 // ArticlesUpsertJSONRequestBody defines body for ArticlesUpsert for application/json ContentType.
 type ArticlesUpsertJSONRequestBody = UpsertTextArticle
 
+// ThumbnailsCreateUploadUrlJSONRequestBody defines body for ThumbnailsCreateUploadUrl for application/json ContentType.
+type ThumbnailsCreateUploadUrlJSONRequestBody = CreateThumbnailUploadUrl
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// ArticlesList 記事一覧を取得
@@ -134,6 +175,9 @@ type ServerInterface interface {
 	// ArticlesUpsert 記事を作成または更新
 	// (PUT /api/articles/{slug})
 	ArticlesUpsert(ctx *echo.Context, slug string) error
+	// ThumbnailsCreateUploadUrl サムネイルのアップロード URL を発行
+	// (POST /api/thumbnails/upload-url)
+	ThumbnailsCreateUploadUrl(ctx *echo.Context) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -228,6 +272,15 @@ func (w *ServerInterfaceWrapper) ArticlesUpsert(ctx *echo.Context) error {
 	return err
 }
 
+// ThumbnailsCreateUploadUrl converts echo context to params.
+func (w *ServerInterfaceWrapper) ThumbnailsCreateUploadUrl(ctx *echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ThumbnailsCreateUploadUrl(ctx)
+	return err
+}
+
 // This is a simple interface which specifies echo.Route addition functions which
 // are present on both echo.Echo and echo.Group, since we want to allow using
 // either of them for path registration
@@ -279,6 +332,7 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.DELETE(options.BaseURL+"/api/articles/:slug", wrapper.ArticlesDelete, options.OperationMiddlewares["Articles_delete"]...)
 	router.GET(options.BaseURL+"/api/articles/:slug", wrapper.ArticlesRead, options.OperationMiddlewares["Articles_read"]...)
 	router.PUT(options.BaseURL+"/api/articles/:slug", wrapper.ArticlesUpsert, options.OperationMiddlewares["Articles_upsert"]...)
+	router.POST(options.BaseURL+"/api/thumbnails/upload-url", wrapper.ThumbnailsCreateUploadUrl, options.OperationMiddlewares["Thumbnails_createUploadUrl"]...)
 
 }
 
@@ -581,6 +635,70 @@ func (response ArticlesUpsert500JSONResponse) VisitArticlesUpsertResponse(w http
 	return err
 }
 
+type ThumbnailsCreateUploadUrlRequestObject struct {
+	Body *ThumbnailsCreateUploadUrlJSONRequestBody
+}
+
+type ThumbnailsCreateUploadUrlResponseObject interface {
+	VisitThumbnailsCreateUploadUrlResponse(w http.ResponseWriter) error
+}
+
+type ThumbnailsCreateUploadUrl200JSONResponse ThumbnailUploadUrl
+
+func (response ThumbnailsCreateUploadUrl200JSONResponse) VisitThumbnailsCreateUploadUrlResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ThumbnailsCreateUploadUrl401JSONResponse Error
+
+func (response ThumbnailsCreateUploadUrl401JSONResponse) VisitThumbnailsCreateUploadUrlResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ThumbnailsCreateUploadUrl422JSONResponse Error
+
+func (response ThumbnailsCreateUploadUrl422JSONResponse) VisitThumbnailsCreateUploadUrlResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ThumbnailsCreateUploadUrl500JSONResponse Error
+
+func (response ThumbnailsCreateUploadUrl500JSONResponse) VisitThumbnailsCreateUploadUrlResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// ArticlesList 記事一覧を取得
@@ -595,6 +713,9 @@ type StrictServerInterface interface {
 	// ArticlesUpsert 記事を作成または更新
 	// (PUT /api/articles/{slug})
 	ArticlesUpsert(ctx context.Context, request ArticlesUpsertRequestObject) (ArticlesUpsertResponseObject, error)
+	// ThumbnailsCreateUploadUrl サムネイルのアップロード URL を発行
+	// (POST /api/thumbnails/upload-url)
+	ThumbnailsCreateUploadUrl(ctx context.Context, request ThumbnailsCreateUploadUrlRequestObject) (ThumbnailsCreateUploadUrlResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx *echo.Context, request any) (any, error)
@@ -725,34 +846,78 @@ func (sh *strictHandler) ArticlesUpsert(ctx *echo.Context, slug string) error {
 	return nil
 }
 
+// ThumbnailsCreateUploadUrl operation middleware
+func (sh *strictHandler) ThumbnailsCreateUploadUrl(ctx *echo.Context) error {
+	var request ThumbnailsCreateUploadUrlRequestObject
+
+	var body ThumbnailsCreateUploadUrlJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ThumbnailsCreateUploadUrl(ctx.Request().Context(), request.(ThumbnailsCreateUploadUrlRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ThumbnailsCreateUploadUrl")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ThumbnailsCreateUploadUrlResponseObject); ok {
+		return validResponse.VisitThumbnailsCreateUploadUrlResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // Base64 encoded, compressed with deflate, json marshaled OpenAPI spec.
 // Stored as a slice of fixed-width chunks rather than one concatenated
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
+	"FhQklNMZ/WQtublTpNf1dC0jVJ+q/z8AAP//",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,
